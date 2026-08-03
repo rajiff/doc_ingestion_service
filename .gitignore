@@ -1,0 +1,47 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.exec
+*excel*
+.Python
+venv/
+.venv/
+bin/
+include/
+lib/
+develop-eggs/
+distribution/
+- eggs/
+.direnv/
+.pytest_cache/
+.tox/
+.coverage
+htmlcov/
+
+# --- Environments & Secrets ---
+.env
+.venv/
+env/
+VirtualEnvironment/
+pyenv/.python-version
+.idea/
+.vscode/
+*.log
+
+# --- Qdrant / Databases (Local Data) ---
+# If you run Qdrant in a local docker container or as a process, 
+# it might generate data in an 'data' or 'storage' folder.
+# Avoid committing actual database files.
+data/
+storage/
+*.db
+*.sqlite
+
+# --- OS Files ---
+.DS_Store
+Thumbs.db
+.Trash
+.AppleDevelopement
+
+# --- Jupyter Notebooks (Optional) ---
+.ipynb_checkpoints

@@ -1,0 +1,1 @@
+# Pydantic schemas (ExtractionRequest/Response/Metadata)
