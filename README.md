@@ -58,3 +58,42 @@ pdf_ingestion_service/
 ├── requirements.txt
 └── README.md
 ```
+
+## Running the Application
+
+### 1. Install Dependencies
+First, ensure all dependencies are installed:
+
+```bash
+uv sync
+# OR if you don't have uv set up as a tool
+pip install -e .
+```
+
+### 2. Run the Application
+You can run the application using `uvicorn`. Since the FastAPI app is defined in `app/main.py`, you should point it to the app object:
+
+```bash
+# Using uvicorn directly
+uv run uvicorn app.main:app --reload
+```
+
+- `app.main`: Points to the app.py module inside the `app` directory.
+- `app`: Refers to the app instance created in `app/main.py`.
+- `--reload`: Enables hot-reloading for development.
+
+### 3. Accessing the API
+Once the server is running (usually on `http://127.0.0.1:8000`), you can access the following endpoints:
+
+- Interactive Documentation: Visit `http://127.0.0.1:8000/docs` to see the Swagger UI.
+- Health Check: `GET http://127.0.0.1:8000/health`
+- Ingest Endpoint: `POST http://127.0.0.1:8000/api/v1/ingest`
+
+### 4. Example Test Request
+You can test the ingestion endpoint using curl and one of your sample files:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/api/v1/ingest" \
+  -H "Content-Type: multipart/form-data" \
+  -F "file=@tests/test_docs/SOLID Principles Baeldung.pdf"
+```
