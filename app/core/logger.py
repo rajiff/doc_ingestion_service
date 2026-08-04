@@ -70,6 +70,16 @@ class NonBlockingLokiHandler(logging.Handler):
         return
 
 
+def init_basic_logger():
+    """Simple standard logger that outputs clean logs to stdout."""
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=settings.LOG_LEVEL.upper(),
+        format="%(asctime)s | %(levelname)-8s | %(name)s - %(message)s",
+        force=True,
+    )
+    return logging.getLogger("app")
+
 def init_logger():
     """
     Configures non-blocking, asynchronous structured JSON logging
