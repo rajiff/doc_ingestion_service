@@ -7,9 +7,10 @@ from app.core.telemetry import setup_telemetry
 # from app.api.middleware import AccessLogMiddleware
 from app.api.v1 import api_router as v1_router
 
-# Initialize Application logging
-init_logger()
 # init_basic_logger()
+
+# Initialize once at startup
+logger = init_logger()  # Returns root logger with all handlers configured
 
 app = FastAPI(title=settings.PROJECT_NAME,
               description=settings.PROJECT_DESC)
@@ -25,6 +26,9 @@ Instrumentator().instrument(app).expose(app)
 
 # Include the V1 API routes
 app.include_router(v1_router, prefix="/api/v1")
+
+logger.info("Message from logger")
+logger.error("Error message", extra={"extra_field": "value"})
 
 @app.get("/health", tags=["Health"])
 async def health_check():
