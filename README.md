@@ -2,13 +2,12 @@
 
 ## Day 1: Interface Design, FastAPI Setup & Text Extraction Layer
 
-Day 1 Deliverables & Tasks
+#### Day 1 Deliverables & Tasks
 - The Skeleton: Build a clean FastAPI microservice skeleton adhering to strict domain boundaries (/interfaces, /services, /parsers, /routers).
 - The Abstraction: Write the BasePDFParser abstract base class using Python's native abc module to strictly honor the Open-Closed Principle.
 - The Strategies: Implement two concrete parsers—PyPDFParser and PDFPlumberParser—that fulfill the base interface.
 - The Endpoint: Code the POST /api/v1/ingest endpoint to accept file uploads in-memory and dynamically switch between your parsing engines via a runtime configuration flag.
 - The Guardrail: Define the robust Pydantic schemas to shape, sanitize, and validate the extracted text and core metadata (e.g., filename, page_number, cleaned_text) before any downstream processing happens.
-
 
 ### Project layout (initial )
 
@@ -118,5 +117,16 @@ uv run pylint app/**/*.py
 |---------------	|------------------------	|-----------------------------------------------------------------	|
 | FastAPI App   	| http://localhost:8000  	| Microservice pointing to OTel Collector (http://localhost:4317) 	|
 | Jaeger UI     	| http://localhost:16686 	| Dedicated Jaeger Tracing UI                                     	|
-| Grafana UI    	| http://localhost:3000  	| Consolidated dashboard (Jaeger, Tempo, Loki, Prometheus)        	|
+| Grafana UI    	| http://localhost:3030  	| Consolidated dashboard (Jaeger, Tempo, Loki, Prometheus)        	|
 | Prometheus UI 	| http://localhost:9090  	| Raw Metrics Explorer                                            	|
+
+
+## Day 2: Production-Grade Chunking & Pluggable Embedding Strategies
+
+#### Day 2 Deliverables & Tasks
+- Deliverable: The text splitting service that transforms raw pages into explicit Parent-Child token boundaries.
+- Tasks:
+  - Implement a token-aware ParentChildChunker service. The text is split into overlapping child nodes linked by a distinct parent_id uuid to the larger textual body.
+  - Define the pluggable embedding interface using the OpenAI-compatible client standard, mapping directly to your local Ollama engine via configuration.
+  - Wrap this step with initial Ariadne Phoenix or LangSmith instrumentation so you can visualize the graph of how your text splits into semantic blocks.
+
