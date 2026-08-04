@@ -4,12 +4,11 @@ import logging.handlers
 import os
 import sys
 import time
+
 from queue import Queue
 import requests
-from app.core.config import settings
 
-# Global reference to prevent garbage collection of the background listener
-_queue_listener: logging.handlers.QueueListener | None = None
+from app.core.config import settings
 
 class JSONFormatter(logging.Formatter):
     """Formats Python log records into structured JSON."""
@@ -25,18 +24,21 @@ class JSONFormatter(logging.Formatter):
             "line": record.lineno,
         }
 
+        # Catch exception info if present
         if record.exc_info:
             log_object["exception"] = self.formatException(record.exc_info)
 
-        # Unpack extra dict if passed via extra={"extra": {...}} or extra={...}
+        # Include custom extra metadata passed via extra={"extra": {...}}
         if hasattr(record, "extra") and isinstance(record.extra, dict):
             log_object.update(record.extra)
 
         return json.dumps(log_object)
 
-
 class NonBlockingLokiHandler(logging.Handler):
-    """Direct HTTP Push Handler for Grafana Loki."""
+    """
+    Direct HTTP Push Handler for Grafana Loki.
+    Pushes structured JSON payloads over HTTP.
+    """
 
     def __init__(self, loki_url: str, app_name: str):
         super().__init__()
@@ -46,6 +48,7 @@ class NonBlockingLokiHandler(logging.Handler):
     def emit(self, record: logging.LogRecord):
         try:
             log_entry = self.format(record)
+            # Timestamp in nanoseconds required by Loki API
             ts_ns = str(int(time.time() * 1e9))
 
             payload = {
@@ -59,19 +62,20 @@ class NonBlockingLokiHandler(logging.Handler):
                     }
                 ]
             }
+            # Short timeout to prevent network stalls
             requests.post(self.loki_url, json=payload, timeout=0.5)
         except Exception:
-            pass
+            # Silently handle Loki downtime to protect other sinks
+            print("Exception occurred while pushing logs to Loki. ")
+        return
 
 
 def init_logger():
-    """Configures non-blocking, asynchronous structured JSON logging."""
-    global _queue_listener
-
-    # Stop previous listener if re-initialized
-    if _queue_listener is not None:
-        _queue_listener.stop()
-
+    """
+    Configures non-blocking, asynchronous structured JSON logging
+    using standard library QueueHandler & QueueListener.
+    """
+    # 1. Ensure log directory exists
     log_dir = os.path.dirname(settings.LOG_FILE_PATH)
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)
@@ -79,7 +83,7 @@ def init_logger():
     json_formatter = JSONFormatter()
     target_handlers = []
 
-    # 1. Console Handler (Human-readable stdout)
+    # Handler A: Console stdout (Human-readable for terminal)
     stdout_handler = logging.StreamHandler(sys.stdout)
     stdout_formatter = logging.Formatter(
         "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
@@ -87,17 +91,17 @@ def init_logger():
     stdout_handler.setFormatter(stdout_formatter)
     target_handlers.append(stdout_handler)
 
-    # 2. File Handler (JSON output)
+    # Handler B: Rolling File Sink (JSON output)
     file_handler = logging.handlers.RotatingFileHandler(
         settings.LOG_FILE_PATH,
-        maxBytes=10 * 1024 * 1024,
+        maxBytes=10 * 1024 * 1024,  # 10 MB
         backupCount=7,
         encoding="utf-8",
     )
     file_handler.setFormatter(json_formatter)
     target_handlers.append(file_handler)
 
-    # 3. Loki Handler
+    # Handler C: Loki Sink (Optional HTTP Push)
     if settings.LOKI_URL:
         loki_handler = NonBlockingLokiHandler(
             loki_url=settings.LOKI_URL, app_name=settings.PROJECT_NAME
@@ -105,34 +109,23 @@ def init_logger():
         loki_handler.setFormatter(json_formatter)
         target_handlers.append(loki_handler)
 
-    # 4. Async Queue Setup
-    log_queue: Queue = Queue(-1)
+    # 2. Setup Async Queue Listener (Offloads disk & network I/O from FastAPI threads)
+    log_queue = Queue(-1)
     queue_handler = logging.handlers.QueueHandler(log_queue)
 
-    _queue_listener = logging.handlers.QueueListener(
+    queue_listener = logging.handlers.QueueListener(
         log_queue, *target_handlers, respect_handler_level=True
     )
-    _queue_listener.start()
+    queue_listener.start()
 
-    # 5. Explicitly Configure Root AND 'app' Loggers
-    log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
-
+    # 3. Apply Queue Handler to Root Logger
     root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
+    root_logger.setLevel(settings.LOG_LEVEL.upper())
     root_logger.handlers = [queue_handler]
 
-    # FORCE 'app' namespace to catch all app code logs and route to queue
-    app_logger = logging.getLogger("app")
-    app_logger.setLevel(log_level)
-    app_logger.handlers = [queue_handler]
-    app_logger.propagate = False
-
-    # Force Uvicorn loggers to use our queue_handler
-    for name in ("uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
-        uv_logger = logging.getLogger(name)
-        uv_logger.setLevel(log_level)
+    # 4. Standardize Uvicorn and FastAPI loggers
+    for logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
+        uv_logger = logging.getLogger(logger_name)
         uv_logger.handlers = [queue_handler]
-        uv_logger.propagate = False
-
 
     return root_logger
