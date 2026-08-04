@@ -1,8 +1,10 @@
+import logging
 from fastapi import APIRouter, UploadFile, HTTPException, Query
 from app.core.config import ParserType
-from app.core.logger import logger
 from app.services.ingestion_service import IngestionService
 from app.schemas.doc_ingestion import DocIngestionResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -22,6 +24,10 @@ async def ingest_document(
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
     logger.info("Ingestion endpoint hit!")
+    logger.info(
+        f"Processing file: {file.filename}",
+        extra={"extra": {"parser_engine": parser_type}}
+    )
 
     try:
         # Read file into memory
@@ -32,6 +38,11 @@ async def ingest_document(
             file_bytes=content,
             filename=file.filename,
             parser_type=parser_type
+        )
+
+        logger.info(
+            f"Successfully extracted document: {file.filename}",
+            extra={"extra": {"total_pages": len(result.pages)}}
         )
 
         return result

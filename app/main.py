@@ -1,13 +1,12 @@
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.core.config import settings
-from app.core.logger import init_logger, logger
+from app.core.logger import init_logger
 from app.core.telemetry import setup_telemetry
 from app.api.v1 import api_router as v1_router
 
-# Initialize Application & Loguru Logger
+# Initialize Application logging
 init_logger()
-logger.info(f"Service instance started with settings: {settings.model_dump()}")
 
 app = FastAPI(title=settings.PROJECT_NAME,
               description=settings.PROJECT_DESC)

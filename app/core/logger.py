@@ -1,70 +1,131 @@
-import sys
+import json
+import logging
+import logging.handlers
 import os
+import sys
+import time
+
+from queue import Queue
 import requests
-from loguru import logger
+
 from app.core.config import settings
 
+class JSONFormatter(logging.Formatter):
+    """Formats Python log records into structured JSON."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        log_object = {
+            "timestamp": self.formatTime(record, self.datefmt),
+            "level": record.levelname,
+            "logger": record.name,
+            "message": record.getMessage(),
+            "module": record.module,
+            "function": record.funcName,
+            "line": record.lineno,
+        }
+
+        # Catch exception info if present
+        if record.exc_info:
+            log_object["exception"] = self.formatException(record.exc_info)
+
+        # Include custom extra metadata passed via extra={"extra": {...}}
+        if hasattr(record, "extra") and isinstance(record.extra, dict):
+            log_object.update(record.extra)
+
+        return json.dumps(log_object)
+
+class NonBlockingLokiHandler(logging.Handler):
+    """
+    Direct HTTP Push Handler for Grafana Loki.
+    Pushes structured JSON payloads over HTTP.
+    """
+
+    def __init__(self, loki_url: str, app_name: str):
+        super().__init__()
+        self.loki_url = loki_url
+        self.app_name = app_name
+
+    def emit(self, record: logging.LogRecord):
+        try:
+            log_entry = self.format(record)
+            # Timestamp in nanoseconds required by Loki API
+            ts_ns = str(int(time.time() * 1e9))
+
+            payload = {
+                "streams": [
+                    {
+                        "stream": {
+                            "application": self.app_name,
+                            "level": record.levelname.lower(),
+                        },
+                        "values": [[ts_ns, log_entry]],
+                    }
+                ]
+            }
+            # Short timeout to prevent network stalls
+            requests.post(self.loki_url, json=payload, timeout=0.5)
+        except Exception:
+            # Silently handle Loki downtime to protect other sinks
+            print("Exception occurred while pushing logs to Loki. ")
+        return
+
+
 def init_logger():
-    """Initialize logger for the app."""
-    # Remove default handler
-    logger.remove()
-
-    # 1. Console Sink (Human Readable)
-    logger.add(
-        sys.stdout,
-        level=settings.LOG_LEVEL,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-        colorize=True,
-        enqueue=True,
-    )
-
-    # Ensure log directory exists before attaching file sink
+    """
+    Configures non-blocking, asynchronous structured JSON logging
+    using standard library QueueHandler & QueueListener.
+    """
+    # 1. Ensure log directory exists
     log_dir = os.path.dirname(settings.LOG_FILE_PATH)
     if log_dir:
         os.makedirs(log_dir, exist_ok=True)
 
-    # 2. Rolling File Sink (Rotates at 10 MB, keeps logs for 7 days)
-    logger.add(
-        settings.LOG_FILE_PATH,
-        rotation="10 MB",
-        retention="7 days",
-        compression="zip",
-        level=settings.LOG_LEVEL,
-        serialize=True,     # Formats as JSON for machine parsing
-        enqueue=True,       # Thread/async safe background writing
-        backtrace=True,
-        diagnose=True,
+    json_formatter = JSONFormatter()
+    target_handlers = []
+
+    # Handler A: Console stdout (Human-readable for terminal)
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    stdout_formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
     )
+    stdout_handler.setFormatter(stdout_formatter)
+    target_handlers.append(stdout_handler)
 
-    # 3. Direct Loki Sink (Non-blocking HTTP Push)
+    # Handler B: Rolling File Sink (JSON output)
+    file_handler = logging.handlers.RotatingFileHandler(
+        settings.LOG_FILE_PATH,
+        maxBytes=10 * 1024 * 1024,  # 10 MB
+        backupCount=7,
+        encoding="utf-8",
+    )
+    file_handler.setFormatter(json_formatter)
+    target_handlers.append(file_handler)
+
+    # Handler C: Loki Sink (Optional HTTP Push)
     if settings.LOKI_URL:
-        def send_to_loki(message):
-            try:
-                record = message.record
-                payload = {
-                    "streams": [
-                        {
-                            "stream": {
-                                "application": settings.PROJECT_NAME,
-                                "level": record["level"].name.lower(),
-                            },
-                            "values": [
-                                [
-                                    str(int(record["time"].timestamp() * 1e9)),
-                                    record["message"],
-                                ]
-                            ],
-                        }
-                    ]
-                }
-                # Keep timeout short (0.5s) to avoid blocking log threads
-                requests.post(settings.LOKI_URL, json=payload, timeout=0.5)
-            except Exception:
-                # Silently catch all connection errors to protect stdout and file sinks
-                pass
+        loki_handler = NonBlockingLokiHandler(
+            loki_url=settings.LOKI_URL, app_name=settings.PROJECT_NAME
+        )
+        loki_handler.setFormatter(json_formatter)
+        target_handlers.append(loki_handler)
 
-        # Note: Do not use enqueue=True on custom function sinks if they handle internal calls,
-        # or catch exceptions cleanly inside the sink wrapper.
-        logger.add(send_to_loki, level=settings.LOG_LEVEL, catch=True)
+    # 2. Setup Async Queue Listener (Offloads disk & network I/O from FastAPI threads)
+    log_queue = Queue(-1)
+    queue_handler = logging.handlers.QueueHandler(log_queue)
 
-    return logger
+    queue_listener = logging.handlers.QueueListener(
+        log_queue, *target_handlers, respect_handler_level=True
+    )
+    queue_listener.start()
+
+    # 3. Apply Queue Handler to Root Logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(settings.LOG_LEVEL.upper())
+    root_logger.handlers = [queue_handler]
+
+    # 4. Standardize Uvicorn and FastAPI loggers
+    for logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
+        uv_logger = logging.getLogger(logger_name)
+        uv_logger.handlers = [queue_handler]
+
+    return root_logger

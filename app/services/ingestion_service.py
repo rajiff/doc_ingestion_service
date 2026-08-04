@@ -1,4 +1,4 @@
-from loguru import logger
+import logging
 from app.core.config import ParserType
 from app.api.deps import get_parser
 from app.interfaces import BasePDFParser
@@ -7,6 +7,8 @@ from app.schemas import (
     DocIngestionResponse,
     DocPageExtraction,
 )
+
+logger = logging.getLogger(__name__)
 
 class IngestionService:
     """Orchestrates the parser strategy and sanitization of extracted content."""

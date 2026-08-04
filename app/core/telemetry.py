@@ -1,3 +1,4 @@
+import logging
 from fastapi import FastAPI
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
@@ -6,7 +7,8 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.core.config import settings
-from app.core.logger import logger
+
+logger = logging.getLogger(__name__)
 
 def setup_telemetry(app: FastAPI):
     """
