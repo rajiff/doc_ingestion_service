@@ -45,3 +45,4 @@ Thumbs.db
 
 # --- Jupyter Notebooks (Optional) ---
 .ipynb_checkpoints
+qdrant_storage

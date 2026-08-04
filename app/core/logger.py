@@ -1,4 +1,5 @@
 import sys
+import os
 import requests
 from loguru import logger
 from app.core.config import settings
@@ -15,6 +16,11 @@ def init_logger():
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
     )
 
+    # Ensure log directory exists before attaching file sink
+    log_dir = os.path.dirname(settings.LOG_FILE_PATH)
+    if log_dir:
+        os.makedirs(log_dir, exist_ok=True)
+
     # 2. Rolling File Sink (Rotates at 10 MB, keeps logs for 7 days)
     logger.add(
         settings.LOG_FILE_PATH,
@@ -23,6 +29,9 @@ def init_logger():
         compression="zip",
         level=settings.LOG_LEVEL,
         serialize=True,  # Formats as JSON for machine parsing
+        enqueue=True,       # Thread/async safe background writing
+        backtrace=True,
+        diagnose=True,
     )
 
     # 3. Direct Loki Sink (Custom HTTP Push Sink)
@@ -48,6 +57,6 @@ def init_logger():
             except Exception:
                 pass  # Avoid crashing app if Loki is temporarily unreachable
 
-        logger.add(send_to_loki, level=settings.LOG_LEVEL)
+        logger.add(send_to_loki, level=settings.LOG_LEVEL, enqueue=True)
 
     return logger
