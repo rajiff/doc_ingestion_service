@@ -28,6 +28,7 @@ class JSONFormatter(logging.Formatter):
         if record.exc_info:
             log_object["exception"] = self.formatException(record.exc_info)
 
+        # Unpack extra dict if passed via extra={"extra": {...}} or extra={...}
         if hasattr(record, "extra") and isinstance(record.extra, dict):
             log_object.update(record.extra)
 
@@ -113,15 +114,25 @@ def init_logger():
     )
     _queue_listener.start()
 
-    # 5. Apply QueueHandler explicitly to both Root and 'app' package namespace
+    # 5. Explicitly Configure Root AND 'app' Loggers
+    log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+
     root_logger = logging.getLogger()
-    root_logger.setLevel(settings.LOG_LEVEL.upper())
+    root_logger.setLevel(log_level)
     root_logger.handlers = [queue_handler]
 
-    # Clear existing handlers from internal loggers so they propagate to root
-    for logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
-        l = logging.getLogger(logger_name)
-        l.handlers = []
-        l.propagate = True
+    # FORCE 'app' namespace to catch all app code logs and route to queue
+    app_logger = logging.getLogger("app")
+    app_logger.setLevel(log_level)
+    app_logger.handlers = [queue_handler]
+    app_logger.propagate = False
+
+    # Force Uvicorn loggers to use our queue_handler
+    for name in ("uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
+        uv_logger = logging.getLogger(name)
+        uv_logger.setLevel(log_level)
+        uv_logger.handlers = [queue_handler]
+        uv_logger.propagate = False
+
 
     return root_logger
