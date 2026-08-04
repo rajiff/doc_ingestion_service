@@ -25,3 +25,16 @@ dev = [
     "ruff>=0.16.1",
 ]
 
+[tool.pylint.main]
+# Specify the files or directories to lint
+ignore = ["tests", "scripts"]
+
+[tool.pylint.messages_control]
+# Disable specific lint errors if needed
+disable = [
+    "C0114", # missing-module-docstring
+    "C0115", # missing-class-docstring
+]
+
+[tool.pylint.format]
+max-line-length = 88

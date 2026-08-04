@@ -1,26 +1,24 @@
-from typing import List, Dict, Any
 from app.interfaces.base_parser import BasePDFParser
 from app.parsers.pypdf_parser import PyPDFParser
-from app.schemas.doc_ingestion import DocIngestionResponse, DocPageExtraction, DocIngestionMetadata
+from app.schemas.doc_ingestion import (
+    DocIngestionMetadata,
+    DocIngestionResponse,
+    DocPageExtraction,
+)
 
 class IngestionService:
-    """
-    Orchestrates the parser strategy and sanitization of extracted content.
-    """
+    """Orchestrates the parser strategy and sanitization of extracted content."""
 
     def __init__(self):
-        # Default to PyPDFParser, but this can be easily extended to support 
+        # Default to PyPDFParser, but this can be easily extended to support
         # different strategies based on configuration or file type.
         self.parser: BasePDFParser = PyPDFParser()
 
     async def ingest_document(
-        self, 
-        file_bytes: bytes, 
-        filename: str
-    ) -> DocIngestionResponse:
-        """
-        Processes a raw PDF byte stream and returns structured extraction results.
-        """
+            self,
+            file_bytes: bytes,
+            filename: str) -> DocIngestionResponse:
+        """Processes a raw PDF byte stream and returns structured extraction results."""
         # Perform extraction
         extracted_pages = self.parser.extract_text(file_bytes)
 

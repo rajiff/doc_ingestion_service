@@ -1,25 +1,17 @@
 import io
 from typing import List, Dict, Any
+
 from pypdf import PdfReader, errors as pdf_reader_errors
+
 from app.interfaces import BasePDFParser
 
-# PyPDF concrete strategy
+
 class PyPDFParser(BasePDFParser):
-    """
-    Concrete implementation of BasePDFParser using the 'pypdf' library.
-    Processes the PDF entirely in-memory using binary byte streams.
-    """
+    """Concrete implementation of BasePDFParser using the 'pypdf' library."""
 
     def extract_text(self, file_bytes: bytes) -> List[Dict[str, Any]]:
-        """
-        Parses raw PDF bytes, extracts raw text page-by-page from the provided PDF bytes.
-
-        Args:
-            file_bytes: Raw binary stream of the uploaded PDF.
-
-        Returns:
-            A list of dicts matching the required interface structure.
-        """
+        """Parses raw PDF bytes, extracts raw text page-by-page 
+        from the provided PDF bytes."""
         try:
             # Wrap the bytes in a BytesIO stream
             bytes_stream = io.BytesIO(file_bytes)
@@ -30,7 +22,7 @@ class PyPDFParser(BasePDFParser):
             extracted_pages = self._extract_text_from_pdf(pdf_reader)
 
             pdf_reader.close()
-        
+
             return extracted_pages
         except pdf_reader_errors.PdfReadError as ex:
             # Log the error here in a real app
@@ -39,12 +31,14 @@ class PyPDFParser(BasePDFParser):
         except Exception as ex:
             # Catch-all for other processing issues
             print(f"Unexpected error during parsing: {ex}")
-            return []
 
-    def _extract_text_from_pdf(self, pdfReader: PdfReader) -> List[Dict[str, Any]]:
+        return []
+
+    def _extract_text_from_pdf(self, pdf_reader: PdfReader) -> List[Dict[str, Any]]:
+        """Extract text from the page layer."""
         extracted_pages: List[Dict[str, Any]] = []
 
-        for page_idx, page in enumerate(pdfReader.pages):
+        for page_idx, page in enumerate(pdf_reader.pages):
             try:
                 # Extract text from the page layer
                 raw_text = page.extract_text()
@@ -54,7 +48,7 @@ class PyPDFParser(BasePDFParser):
 
                 if cleaned_text:
                     extracted_pages.append({
-                        "page_number": page_idx + 1,  # Standardize to 1-indexed count
+                        "page_number": page_idx + 1,
                         "text": cleaned_text
                     })
             except Exception as ex:
@@ -62,5 +56,3 @@ class PyPDFParser(BasePDFParser):
                 print(f"Error extracting text from page {page_idx + 1}: {ex}")
 
         return extracted_pages
-
-
