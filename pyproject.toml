@@ -32,6 +32,8 @@ dev = [
 ]
 
 [tool.pylint.main]
+# Tells Pylint to look at your root directory or specific source folders
+init-hook = "import sys; import os; sys.path.append(os.path.abspath('.'))"
 # Specify the files or directories to lint
 ignore = ["tests", "scripts"]
 
