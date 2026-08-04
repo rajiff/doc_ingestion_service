@@ -15,10 +15,10 @@ def setup_telemetry(app: FastAPI):
     Instruments FastAPI with OpenTelemetry for tracing request latency & bottlenecks.
     """
     if not settings.OTEL_EXPORTER_OTLP_ENDPOINT:
-        logger.info(f"OTEL Exporter not set {settings.OTEL_EXPORTER_OTLP_ENDPOINT}")
+        logger.info("OTEL Exporter not set %s", settings.OTEL_EXPORTER_OTLP_ENDPOINT)
         return
 
-    logger.info(f"OTEL Exporter for project {settings.PROJECT_NAME} set to {settings.OTEL_EXPORTER_OTLP_ENDPOINT}")
+    logger.info("OTEL Exporter for project %s set to %s", settings.PROJECT_NAME, settings.OTEL_EXPORTER_OTLP_ENDPOINT)
 
     # 1. Define Resource attributes (Sets the service name in Jaeger/Tempo)
     resource = Resource.create(attributes={

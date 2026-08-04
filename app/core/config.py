@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     # Logging Configuration
     LOG_LEVEL: str = "INFO"
     LOG_FILE_PATH: str = "logs/ingestion_service.log"
-    LOKI_URL: str | None = None  # e.g., "http://localhost:3100/loki/api/v1/push"
-    # LOKI_URL: str = "http://localhost:3100/loki/api/v1/push"
+    # LOKI_URL: str | None = None  # e.g., "http://localhost:3100/loki/api/v1/push"
+    LOKI_URL: str = "http://localhost:3100/loki/api/v1/push"
 
     # Observability
     # OTEL_EXPORTER_OTLP_ENDPOINT: str | None = None  # e.g., "http://localhost:4317"

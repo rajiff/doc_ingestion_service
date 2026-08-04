@@ -23,9 +23,9 @@ async def ingest_document(
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
-    logger.info("Ingestion endpoint hit!")
     logger.info(
-        f"Processing file: {file.filename}",
+        "Processing ingestion request for file: %s", 
+        file.filename,
         extra={"extra": {"parser_engine": parser_type}}
     )
 
@@ -41,7 +41,8 @@ async def ingest_document(
         )
 
         logger.info(
-            f"Successfully extracted document: {file.filename}",
+            "Successfully extracted document: %s", 
+            file.filename,
             extra={"extra": {"total_pages": len(result.pages)}}
         )
 
