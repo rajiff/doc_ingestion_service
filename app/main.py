@@ -1,4 +1,3 @@
-import logging
 from fastapi import FastAPI
 from prometheus_fastapi_instrumentator import Instrumentator
 from app.core.config import settings
@@ -9,10 +8,6 @@ from app.api.v1 import api_router as v1_router
 
 # Initialize Application logging
 init_logger()
-
-# Silence Uvicorn's default access logger to avoid duplicate log lines
-# logging.getLogger("uvicorn.access").handlers = []
-# logging.getLogger("uvicorn.access").propagate = False
 
 app = FastAPI(title=settings.PROJECT_NAME,
               description=settings.PROJECT_DESC)

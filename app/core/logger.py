@@ -11,7 +11,6 @@ from app.core.config import settings
 # Global reference to prevent garbage collection of the background listener
 _queue_listener: logging.handlers.QueueListener | None = None
 
-
 class JSONFormatter(logging.Formatter):
     """Formats Python log records into structured JSON."""
 
@@ -119,15 +118,10 @@ def init_logger():
     root_logger.setLevel(settings.LOG_LEVEL.upper())
     root_logger.handlers = [queue_handler]
 
-    app_logger = logging.getLogger("app")
-    app_logger.setLevel(settings.LOG_LEVEL.upper())
-    app_logger.handlers = [queue_handler]
-    app_logger.propagate = True
-
-    # 6. Bind Uvicorn loggers to queue_handler
+    # Clear existing handlers from internal loggers so they propagate to root
     for logger_name in ("uvicorn", "uvicorn.access", "uvicorn.error", "fastapi"):
-        uv_logger = logging.getLogger(logger_name)
-        uv_logger.handlers = [queue_handler]
-        uv_logger.propagate = False
+        l = logging.getLogger(logger_name)
+        l.handlers = []
+        l.propagate = True
 
     return root_logger
