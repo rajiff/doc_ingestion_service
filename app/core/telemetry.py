@@ -9,7 +9,6 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
-logger.propagate = True
 
 def setup_telemetry(app: FastAPI):
     """

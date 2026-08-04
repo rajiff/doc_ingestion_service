@@ -9,7 +9,6 @@ from app.schemas import (
 )
 
 logger = logging.getLogger(__name__)
-logger.propagate = True
 
 class IngestionService:
     """Orchestrates the parser strategy and sanitization of extracted content."""
