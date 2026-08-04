@@ -97,3 +97,26 @@ curl -X POST "http://127.0.0.1:8000/api/v1/ingest" \
   -H "Content-Type: multipart/form-data" \
   -F "file=@tests/test_docs/SOLID Principles Baeldung.pdf"
 ```
+
+### 5. Run test cases
+You can run test cases 
+
+```bash
+uv run pytest
+```
+
+### 6. Run Lint check
+To perform lint check, run this command, project TOML file has the configurations to ignore tests and other not needed folder
+
+```bash
+uv run pylint app/**/*.py
+```
+
+## Observability
+
+| Service       	| Access URL / Port      	| Description                                                     	|
+|---------------	|------------------------	|-----------------------------------------------------------------	|
+| FastAPI App   	| http://localhost:8000  	| Microservice pointing to OTel Collector (http://localhost:4317) 	|
+| Jaeger UI     	| http://localhost:16686 	| Dedicated Jaeger Tracing UI                                     	|
+| Grafana UI    	| http://localhost:3000  	| Consolidated dashboard (Jaeger, Tempo, Loki, Prometheus)        	|
+| Prometheus UI 	| http://localhost:9090  	| Raw Metrics Explorer                                            	|

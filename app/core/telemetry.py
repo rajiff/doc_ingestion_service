@@ -15,7 +15,10 @@ def setup_telemetry(app: FastAPI):
 
     provider = TracerProvider()
     processor = BatchSpanProcessor(
-        OTLPSpanExporter(endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT, insecure=True)
+        OTLPSpanExporter(
+            endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT,
+            insecure=True
+        )
     )
     provider.add_span_processor(processor)
     trace.set_tracer_provider(provider)

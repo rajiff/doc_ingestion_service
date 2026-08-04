@@ -11,6 +11,7 @@ dependencies = [
     "loguru>=0.7.3",
     "opentelemetry-api>=1.44.0",
     "opentelemetry-exporter-otlp>=1.44.0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
     "opentelemetry-instrumentation-fastapi>=0.65b0",
     "opentelemetry-sdk>=1.44.0",
     "pdfplumber>=0.11.10",
@@ -36,7 +37,7 @@ dev = [
 # Tells Pylint to look at your root directory or specific source folders
 init-hook = "import sys; import os; sys.path.append(os.path.abspath('.'))"
 # Specify the files or directories to lint
-ignore = ["tests", "scripts"]
+ignore = ["tests", "scripts", "logs", "grafana", "qdrant_storage"]
 
 [tool.pylint.messages_control]
 # Disable specific lint errors if needed
