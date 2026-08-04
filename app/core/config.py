@@ -7,7 +7,7 @@ class ParserType(str, Enum):
     PYMUPDF = "pymupdf"  # PyMuPDF
 
 class Settings(BaseSettings):
-    PROJECT_NAME: str = "PDF Document Ingestion Service"
+    PROJECT_NAME: str = "PDF Ingestion Service"
     PROJECT_DESC: str = "Service for extracting text from PDF documents"
     DEFAULT_PARSER: ParserType = ParserType.PDFPLUMBER  # Fast default
 

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from prometheus_fastapi_instrumentator import Instrumentator
 from app.core.config import settings
 from app.core.logger import init_logger
 from app.core.telemetry import setup_telemetry
@@ -12,6 +13,9 @@ app = FastAPI(title=settings.PROJECT_NAME,
 
 # Set up OTel Auto-Instrumentation
 setup_telemetry(app)
+
+# Prometheus Exporter for RED Metrics
+Instrumentator().instrument(app).expose(app)
 
 # Include the V1 API routes
 app.include_router(v1_router, prefix="/api/v1")
