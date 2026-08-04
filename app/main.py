@@ -11,6 +11,7 @@ from app.api.v1 import api_router as v1_router
 
 # Initialize once at startup
 logger = init_logger()  # Returns root logger with all handlers configured
+logger.propagate = True
 
 app = FastAPI(title=settings.PROJECT_NAME,
               description=settings.PROJECT_DESC)

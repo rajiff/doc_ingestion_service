@@ -5,6 +5,7 @@ from app.services.ingestion_service import IngestionService
 from app.schemas.doc_ingestion import DocIngestionResponse
 
 logger = logging.getLogger(__name__)
+logger.propagate = True
 
 router = APIRouter()
 
