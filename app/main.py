@@ -1,8 +1,17 @@
 from fastapi import FastAPI
+from app.core.config import settings
+from app.core.logger import init_logger
+from app.core.telemetry import setup_telemetry
 from app.api.v1 import api_router as v1_router
 
-app = FastAPI(title="PDF Document Ingestion Service",
-              description="Service for extracting text from PDF documents")
+# Initialize Application & Loguru Logger
+init_logger()
+
+app = FastAPI(title=settings.PROJECT_NAME,
+              description=settings.PROJECT_DESC)
+
+# Set up OTel Auto-Instrumentation
+setup_telemetry(app)
 
 # Include the V1 API routes
 app.include_router(v1_router, prefix="/api/v1")
