@@ -22,7 +22,7 @@ async def ingest_document(
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
     logger.debug(
-        "Processing ingestion request for file: %s", 
+        "Processing ingestion request for file: %s",
         file.filename,
         extra={"extra": {"parser_engine": parser_type}}
     )
@@ -39,8 +39,8 @@ async def ingest_document(
         )
 
         logger.debug(
-            "Successfully extracted document: %s for %s pages", 
-            file.filename, 
+            "Successfully extracted document: %s for %s pages",
+            file.filename,
             len(result.pages),
             extra={"extra": {"total_pages": len(result.pages)}}
         )

@@ -17,7 +17,11 @@ def setup_telemetry(app: FastAPI):
         logger.debug("OTEL Exporter not set %s", settings.OTEL_EXPORTER_OTLP_ENDPOINT)
         return
 
-    logger.debug("OTEL Exporter for project %s set to %s", settings.PROJECT_NAME, settings.OTEL_EXPORTER_OTLP_ENDPOINT)
+    logger.debug(
+        "OTEL Exporter for project %s set to %s",
+        settings.PROJECT_NAME,
+        settings.OTEL_EXPORTER_OTLP_ENDPOINT
+    )
 
     # 1. Define Resource attributes (Sets the service name in Jaeger/Tempo)
     resource = Resource.create(attributes={
@@ -30,7 +34,7 @@ def setup_telemetry(app: FastAPI):
     # 3. Configure Exporter
     processor = BatchSpanProcessor(
         OTLPSpanExporter(
-            endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT, 
+            endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT,
             insecure=True
         )
     )

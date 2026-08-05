@@ -9,7 +9,10 @@ class DocPageExtraction(BaseModel):
 class DocIngestionMetadata(BaseModel):
     """Metadata surrounding the extraction run."""
     filename: str = Field(..., description="The name of the processed file.")
-    parser_used: str = Field(..., description="Parsing strategy utilized (etc., pypdf, pdfplumber)")
+
+    parser_used: str = Field(
+        ..., description="Parsing strategy utilized (etc., pypdf, pdfplumber)")
+
     total_pages: int = Field(..., description="Total pages successfully parsed.")
 
 class DocIngestionResponse(BaseModel):

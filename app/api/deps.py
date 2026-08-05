@@ -15,9 +15,11 @@ def get_parser(parser_type: ParserType | None = None) -> BasePDFParser:
 
     if selected_type == ParserType.PYPDF:
         return PyPDFParser()
-    elif selected_type == ParserType.PDFPLUMBER:
+
+    if selected_type == ParserType.PDFPLUMBER:
         return PDFPlumberParser()
-    elif selected_type == ParserType.PYMUPDF:
+
+    if selected_type == ParserType.PYMUPDF:
         return PyMuPDFParser()
 
     raise ValueError(f"Unsupported parser engine: {selected_type}")

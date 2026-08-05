@@ -8,14 +8,14 @@ log_formatter = logging.Formatter(
     fmt='%(asctime)s %(levelname)s %(message)s',
 )
 
-log_stdout_handler = logging.StreamHandler(sys.stdout) 
+log_stdout_handler = logging.StreamHandler(sys.stdout)
 log_stdout_handler.setFormatter(log_formatter)
 
 log_rotating_file_handler = logging.handlers.RotatingFileHandler(
     "logs/pdf_ingestion_service.log",
     maxBytes=1024*10,
     backupCount=5,
-    # encoding="utf-8", 
+    # encoding="utf-8",
     # delay=False,  # if True, file is opened
     # mode='a',  # 'w' or '
 )

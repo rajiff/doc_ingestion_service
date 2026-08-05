@@ -44,7 +44,8 @@ disable = [
     "C0114", # missing-module-docstring
     "C0115", # missing-class-docstring
     "R0903", # Too few public methods
-    "E0401", # Unable to import
+    "E0401", # Unable to import,
+    "W0718", #Catching too general exception Exception 
 ]
 
 [tool.pylint.format]
