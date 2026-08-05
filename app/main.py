@@ -27,9 +27,6 @@ Instrumentator().instrument(app).expose(app)
 # Include the V1 API routes
 app.include_router(v1_router, prefix="/api/v1")
 
-logger.info("Message from logger")
-logger.error("Error message", extra={"extra_field": "value"})
-
 @app.get("/health", tags=["Health"])
 async def health_check():
     """Basic health check endpoint to verify service availability."""
