@@ -1,5 +1,5 @@
-import logging
 from app.core.config import ParserType
+from app.core.logger import logger
 from app.api.deps import get_parser
 from app.interfaces import BasePDFParser
 from app.schemas import (
@@ -22,7 +22,7 @@ class IngestionService:
         """Processes a raw PDF byte stream and returns structured extraction results."""
 
         parser: BasePDFParser = get_parser(parser_type)
-        logging.info(
+        logger.info(
             "Processing file %s", 
             filename,
             extra={"extra": {"parser_engine": parser.__class__.__name__}}

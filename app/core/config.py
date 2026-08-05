@@ -11,9 +11,12 @@ class Settings(BaseSettings):
     PROJECT_DESC: str = "Service for extracting text from PDF documents"
     DEFAULT_PARSER: ParserType = ParserType.PDFPLUMBER  # Fast default
 
-    # Logging Configuration
+    # service
+    SERVICE_NAME: str = "doc_ingestion_service"
+
+    # Logging Configuration    
     LOG_LEVEL: str = "INFO"
-    LOG_FILE_PATH: str = "logs/ingestion_service.log"
+    LOG_FILE_PATH: str = f"logs/{SERVICE_NAME}.log"
     # LOKI_URL: str | None = None  # e.g., "http://localhost:3100/loki/api/v1/push"
     LOKI_URL: str = "http://localhost:3100/loki/api/v1/push"
 
