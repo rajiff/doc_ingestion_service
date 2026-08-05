@@ -4,8 +4,6 @@ from app.core.config import ParserType
 from app.services.ingestion_service import IngestionService
 from app.schemas.doc_ingestion import DocIngestionResponse
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter()
 
 # Instantiate service (singleton-like behavior for the dependency)
@@ -23,7 +21,7 @@ async def ingest_document(
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
-    logger.info(
+    logging.info(
         "Processing ingestion request for file: %s", 
         file.filename,
         extra={"extra": {"parser_engine": parser_type}}
@@ -40,7 +38,7 @@ async def ingest_document(
             parser_type=parser_type
         )
 
-        logger.info(
+        logging.info(
             "Successfully extracted document: %s", 
             file.filename,
             extra={"extra": {"total_pages": len(result.pages)}}

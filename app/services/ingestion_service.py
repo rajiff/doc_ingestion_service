@@ -8,8 +8,6 @@ from app.schemas import (
     DocPageExtraction,
 )
 
-logger = logging.getLogger(__name__)
-
 class IngestionService:
     """Orchestrates the parser strategy and sanitization of extracted content."""
 
@@ -24,7 +22,7 @@ class IngestionService:
         """Processes a raw PDF byte stream and returns structured extraction results."""
 
         parser: BasePDFParser = get_parser(parser_type)
-        logger.info(
+        logging.info(
             "Processing file %s", 
             filename,
             extra={"extra": {"parser_engine": parser.__class__.__name__}}
