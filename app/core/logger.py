@@ -1,5 +1,6 @@
 import logging
 import sys
+from logging.handlers import RotatingFileHandler
 
 logger = logging.getLogger("app_name_here")
 logger.propagate = False
@@ -11,7 +12,7 @@ log_formatter = logging.Formatter(
 log_stdout_handler = logging.StreamHandler(sys.stdout)
 log_stdout_handler.setFormatter(log_formatter)
 
-log_rotating_file_handler = logging.handlers.RotatingFileHandler(
+log_rotating_file_handler = RotatingFileHandler(
     "logs/pdf_ingestion_service.log",
     maxBytes=1024*10,
     backupCount=5,

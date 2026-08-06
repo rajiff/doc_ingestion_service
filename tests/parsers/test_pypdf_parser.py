@@ -7,16 +7,16 @@ class TestPyPDFParser:
     Test that the parser can extract text from a PDF.
     """
 
-    def test_extract_text_single_page(testargs):
+    def test_extract_text_single_page(self, _):
         """
         Test that the parser can extract text from a single-page PDF.
         """
 
-        pdfFile = "tests/test_docs/Critical Thinking 10 Year Kids.pdf"
-        assert os.path.exists(pdfFile), f"Test file not found at {pdfFile}"
+        pdf_doc_file = "tests/test_docs/Critical Thinking 10 Year Kids.pdf"
+        assert os.path.exists(pdf_doc_file), f"Test file not found at {pdf_doc_file}"
 
         # Read the entire file into memory as bytes
-        with open(pdfFile, "rb") as file: 
+        with open(pdf_doc_file, "rb") as file: 
             file_bytes = file.read()
 
             parser: BasePDFParser = PyPDFParser()
