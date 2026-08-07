@@ -39,4 +39,11 @@ class Settings(BaseSettings):
     QDRANT_PORT: int = 6333
     QDRANT_COLLECTION: str = "documents"
 
+    # Ingestion & Chunking Strategy
+    PARENT_CHUNK_SIZE: int = 600
+    PARENT_CHUNK_OVERLAP: int = 100
+    CHILD_CHUNK_SIZE: int = 150
+    CHILD_CHUNK_OVERLAP: int = 25
+    TOKENIZER_ENCODING_NAME: str = "cl100k_base"
+
 settings = Settings()

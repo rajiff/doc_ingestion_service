@@ -68,6 +68,12 @@ class ParentChildChunker(BaseChunker):
         if not text.strip():
             return []
 
+        logger.debug(
+            "Processing for chunking text of len %s into %s chunks",
+            len(text),
+            self.parent_chunk_size
+        )
+
         metadata = metadata or {}
 
         # Phase 1: Slice the root text into high-context Parent text blocks
@@ -101,8 +107,15 @@ class ParentChildChunker(BaseChunker):
                     token_count=c_tokens,
                     metadata={**metadata, "parent_id": parent.parent_id}
                 )
-                parent.children.append(child)
+                # ignore this lint error, as it is confused with pydantic
+                parent.children.append(child) # pylint: disable=no-member
 
             parent_chunks.append(parent)
+
+        logger.debug(
+            "Completed chunking of text of len %d into %d parent chunks",
+            len(text),
+            len(parent_chunks)
+        )
 
         return parent_chunks

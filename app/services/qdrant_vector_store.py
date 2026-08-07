@@ -1,7 +1,10 @@
 from typing import List, Dict, Any, Optional
 import uuid
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
+from qdrant_client.models import (
+    Distance, VectorParams, PointStruct,
+    Filter, FieldCondition, MatchValue
+)
 from app.interfaces.base_vector_store import BaseVectorStore
 
 class QdrantVectorStore(BaseVectorStore):
@@ -59,3 +62,22 @@ class QdrantVectorStore(BaseVectorStore):
             "score": hit.score, 
             "payload": hit.payload} 
             for hit in hits.points]
+
+    async def delete_vectors_by_filter(
+            self, 
+            collection_name: str, 
+            filter_key: str, 
+            filter_value: Any
+        ) -> bool:
+        await self.client.delete(
+            collection_name=collection_name,
+            points_selector=Filter(
+                must=[
+                    FieldCondition(
+                        key=filter_key,
+                        match=MatchValue(value=filter_value)
+                    )
+                ]
+            )
+        )
+        return True

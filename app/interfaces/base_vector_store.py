@@ -58,3 +58,20 @@ class BaseVectorStore(ABC):
            list of dictionaries containing ids,
         """
         return
+
+    @abstractmethod
+    async def delete_vectors_by_filter(
+        self, 
+        collection_name: str, 
+        filter_key: str, 
+        filter_value: Any
+    ) -> bool:
+        """Delete all points matching a specific payload metadata criterion.
+        Arguments:
+            collection_name -- name of the collection in which points will be deleted.
+            filter_key -- key in the metadata to match points with.
+            filter_value -- value to match points with.
+        Returns:
+            bool indicating whether any points were deleted.
+        """
+        return
