@@ -20,9 +20,7 @@ class BaseEmbeddingService(ABC):
         """
         return
 
-    @property
     @abstractmethod
-    async def dimension(self) -> int:
-        """Return the vector dimensionality of the model
-        (e.g., 768 for nomic-embed-text)."""
+    async def get_dimension(self) -> int:
+        """Return the vector dimensionality of the model"""
         return

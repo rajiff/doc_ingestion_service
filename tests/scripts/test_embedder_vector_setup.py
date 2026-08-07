@@ -22,7 +22,7 @@ async def main():
     vector = await embedder.embed_query(test_doc)
     print(f"Generated Vector dimension: {len(vector)}")
 
-    dimension = await embedder.dimension
+    dimension = await embedder.get_dimension()
 
     print("\n2. Ensuring Qdrant Collection...")
     await vector_store.create_collection(
