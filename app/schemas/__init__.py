@@ -3,3 +3,7 @@ from .doc_ingestion import (
     DocIngestionResponse,
     DocPageExtraction,
 )
+from .chunk import (
+    ParentChunk,
+    ChildChunk
+)

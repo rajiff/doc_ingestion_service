@@ -26,4 +26,17 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
+    # LLM Provider Flags
+    EMBEDDING_PROVIDER: str = "ollama"  # Options: "ollama", "openai", etc.
+    VECTOR_STORE_PROVIDER: str = "qdrant"  # Options: "qdrant", "pgvector", etc.
+
+    # Ollama Settings
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+    OLLAMA_EMBED_MODEL: str = "nomic-embed-text:v1.5"
+    
+    # Qdrant Settings
+    QDRANT_HOST: str = "localhost"
+    QDRANT_PORT: int = 6333
+    QDRANT_COLLECTION: str = "documents"
+
 settings = Settings()

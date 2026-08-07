@@ -130,3 +130,30 @@ uv run pylint app/**/*.py
   - Define the pluggable embedding interface using the OpenAI-compatible client standard, mapping directly to your local Ollama engine via configuration.
   - Wrap this step with initial Ariadne Phoenix or LangSmith instrumentation so you can visualize the graph of how your text splits into semantic blocks.
 
+
+### Chunking & Embedding Lifecycle (When and Where)
+Understanding the lifecycle sequence prevents unnecessary database hits or redundant computations.
+```plaintext                                                                         
+                            [INGESTION PHASE (Write Path)]
+                  
+            User Upload -> Extract Raw Text -> Sanitize/Clean Text
+                                         |
+                                         ▼
+                                  Chunking Service
+                      (Splits text into Parent & Child Chunks)
+                                         │
+                                         ▼
+                                 Embedding Service
+                     (Calls embed_documents on Child Chunks)
+                                         │
+                                         ▼
+                             Vector Store Service
+          (Upserts Child Vectors + Payload containing Parent Text & Metadata)
+          
+      -------------------------------------------------------------------------
+
+                         [RETRIEVAL PHASE (Read Path)]
+                  
+User Query -> Embedding Service (Calls embed_query) -> Vector Search in Qdrant
+```
+

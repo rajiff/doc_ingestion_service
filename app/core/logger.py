@@ -14,7 +14,7 @@ log_stdout_handler.setFormatter(log_formatter)
 
 log_rotating_file_handler = RotatingFileHandler(
     "logs/pdf_ingestion_service.log",
-    maxBytes=1024*10,
+    maxBytes=1024*5,
     backupCount=5,
     # encoding="utf-8",
     # delay=False,  # if True, file is opened

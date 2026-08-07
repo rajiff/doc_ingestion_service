@@ -1,3 +1,4 @@
 from .ingestion_service import IngestionService
 from .ollama_embedding_service import OllamaEmbeddingService
 from .qdrant_vector_store import QdrantVectorStore
+from .parent_child_chunker import ParentChildChunker

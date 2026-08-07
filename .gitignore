@@ -28,6 +28,9 @@ pyenv/.python-version
 .vscode/
 *.log
 
+log/
+logs/
+
 # --- Qdrant / Databases (Local Data) ---
 # If you run Qdrant in a local docker container or as a process, 
 # it might generate data in an 'data' or 'storage' folder.

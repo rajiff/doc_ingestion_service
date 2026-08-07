@@ -1,5 +1,5 @@
 # Dependency injection (e.g., getting parser instances)
-from app.core import settings, ParserType
+from app.core.config import settings, ParserType
 from app.interfaces import BasePDFParser
 from app.parsers import (
     PyPDFParser,
