@@ -61,9 +61,9 @@ class BaseVectorStore(ABC):
 
     @abstractmethod
     async def delete_vectors_by_filter(
-        self, 
-        collection_name: str, 
-        filter_key: str, 
+        self,
+        collection_name: str,
+        filter_key: str,
         filter_value: Any
     ) -> bool:
         """Delete all points matching a specific payload metadata criterion.

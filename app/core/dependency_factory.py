@@ -27,7 +27,8 @@ def get_vector_store() -> BaseVectorStore:
             host=settings.QDRANT_HOST,
             port=settings.QDRANT_PORT
         )
-    raise ValueError(f"Unsupported vector store provider: {settings.VECTOR_STORE_PROVIDER}")
+    raise ValueError(
+        f"Unsupported vector store provider: {settings.VECTOR_STORE_PROVIDER}")
 
 def get_chunking_service() -> BaseChunker:
     """Instantiate configured chunking service."""

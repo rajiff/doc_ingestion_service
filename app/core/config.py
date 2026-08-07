@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     # Ollama Settings
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_EMBED_MODEL: str = "nomic-embed-text:v1.5"
-    
+
     # Qdrant Settings
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333

@@ -8,10 +8,13 @@ from app.schemas.chunk import ParentChunk, ChildChunk
 
 class ParentChildChunker(BaseChunker):
     """
-    Production-grade chunking service that implements a hierarchical Parent-Child strategy.
+    Production-grade chunking service that implements
+    a hierarchical Parent-Child strategy.
 
-    This strategy isolates granular text sections (Child Chunks) to drive highly accurate
-    vector searches while preserving surrounding textual context (Parent Chunks) to maximize
+    This strategy isolates granular text sections
+    (Child Chunks) to drive highly accurate
+    vector searches while preserving surrounding
+    textual context (Parent Chunks) to maximize
     the synthesis performance of downstream LLMs.
     """
 
@@ -23,8 +26,10 @@ class ParentChildChunker(BaseChunker):
         child_chunk_overlap: int = 25,
         encoding_name: str = "cl100k_base"
     ):
-        # encoding "cl100k_base" is used because it aligns closely with the standard local models
-        # other encodings which we coudl use are "p50k_base", "gpt-40k", "gpt-50-base"
+        # encoding "cl100k_base" is used because it
+        # aligns closely with the standard local models
+        # other encodings which we could use are
+        # "p50k_base", "gpt-40k", "gpt-50-base"
 
         self.parent_chunk_size = parent_chunk_size
         self.parent_chunk_overlap = parent_chunk_overlap
@@ -36,8 +41,9 @@ class ParentChildChunker(BaseChunker):
 
     def _split_text_by_tokens(self, text: str, size: int, overlap: int) -> List[str]:
         """
-        Splits a raw text string into overlapping windowed text substrings,
-        guaranteeing that every output segment adheres strictly to token capacity constraints.
+        Splits a raw text string into overlapping
+        windowed text substrings, guaranteeing that every output
+        segment adheres strictly to token capacity constraints.
         """
         # Step A: Convert the raw string into a list of integer token IDs
         tokens = self.tokenizer.encode(text)
@@ -55,15 +61,21 @@ class ParentChildChunker(BaseChunker):
             if end == len(tokens):
                 break
 
-            # Step D: Step forward by the step size (size minus overlap) to generate standard overlap
+            # Step D: Step forward by the step size (size minus overlap)
+            # to generate standard overlap
             start += size - overlap
 
         return chunks
 
-    def chunk_text(self, text: str, metadata: Dict[str, Any] = None) -> List[ParentChunk]:
+    def chunk_text(
+            self,
+            text: str,
+            metadata: Dict[str, Any] = None
+        ) -> List[ParentChunk]:
         """
-        Main orchestration method: Accepts raw text and transforms it into an organized
-        hierarchy of interconnected Parent and Child chunk schemas.
+        Main orchestration method: Accepts raw text and transforms
+        it into an organized hierarchy of interconnected
+        Parent and Child chunk schemas.
         """
         if not text.strip():
             return []
@@ -86,14 +98,17 @@ class ParentChildChunker(BaseChunker):
             # Re-verify local token boundaries for metadata validation
             p_tokens = len(self.tokenizer.encode(p_text))
 
+            # children Explicit initialization
+            # circumvents type-checker validation issues
             parent = ParentChunk(
                 text=p_text,
                 token_count=p_tokens,
                 metadata=metadata.copy(),
-                children=[] # Explicit initialization circumvents type-checker validation issues
+                children=[]
             )
 
-            # Phase 2: Slice this specific parent's text into small, highly localized child blocks
+            # Phase 2: Slice this specific parent's text into small,
+            # highly localized child blocks
             child_texts = self._split_text_by_tokens(
                 p_text, self.child_chunk_size, self.child_chunk_overlap
             )
