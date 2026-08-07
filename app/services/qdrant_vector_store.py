@@ -58,15 +58,15 @@ class QdrantVectorStore(BaseVectorStore):
         )
 
         return [{
-            "id": hit.id, 
-            "score": hit.score, 
-            "payload": hit.payload} 
+            "id": hit.id,
+            "score": hit.score,
+            "payload": hit.payload}
             for hit in hits.points]
 
     async def delete_vectors_by_filter(
-            self, 
-            collection_name: str, 
-            filter_key: str, 
+            self,
+            collection_name: str,
+            filter_key: str,
             filter_value: Any
         ) -> bool:
         await self.client.delete(
