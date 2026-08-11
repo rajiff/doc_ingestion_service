@@ -1,16 +1,16 @@
 import io
-from typing import List, Dict, Any
+from typing import List
 
 from pypdf import PdfReader, errors as pdf_reader_errors
-
 from app.interfaces import BasePDFParser
+from app.schemas.doc_ingestion import DocPageExtraction
 
 
 class PyPDFParser(BasePDFParser):
     """Concrete implementation of BasePDFParser using the 'pypdf' library."""
 
-    def extract_text(self, file_bytes: bytes) -> List[Dict[str, Any]]:
-        """Parses raw PDF bytes, extracts raw text page-by-page 
+    def extract_text(self, file_bytes: bytes) -> List[DocPageExtraction]:
+        """Parses raw PDF bytes, extracts raw text page-by-page
         from the provided PDF bytes."""
         try:
             # Wrap the bytes in a BytesIO stream
@@ -34,9 +34,9 @@ class PyPDFParser(BasePDFParser):
 
         return []
 
-    def _extract_text_from_pdf(self, pdf_reader: PdfReader) -> List[Dict[str, Any]]:
+    def _extract_text_from_pdf(self, pdf_reader: PdfReader) -> List[DocPageExtraction]:
         """Extract text from the page layer."""
-        extracted_pages: List[Dict[str, Any]] = []
+        extracted_pages: List[DocPageExtraction] = []
 
         for page_idx, page in enumerate(pdf_reader.pages):
             try:

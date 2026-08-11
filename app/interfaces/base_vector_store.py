@@ -37,9 +37,10 @@ class BaseVectorStore(ABC):
             client_doc_id: Unique client document identifier.
 
         Returns:
-            List[Dict[str, Any]]: List of dictionary metadata payloads for matching chunks.
+            List[Dict[str, Any]]: List of dictionary metadata payloads
+            for matching chunks.
         """
-        pass
+        return
 
     @abstractmethod
     async def delete_by_client_doc_id(
@@ -58,7 +59,7 @@ class BaseVectorStore(ABC):
         Returns:
             bool: True if deletion operation succeeded.
         """
-        pass
+        return
 
     @abstractmethod
     async def upsert_vectors(
@@ -69,7 +70,8 @@ class BaseVectorStore(ABC):
         ids: Optional[List[str]] = None
     ) -> bool:
         """
-        Upserts parent/child vector embeddings alongside their structured metadata payloads.
+        Upserts parent/child vector embeddings alongside their
+        structured metadata payloads.
 
         Args:
             collection_name: Name of the collection.
@@ -100,7 +102,8 @@ class BaseVectorStore(ABC):
             filters: Optional metadata filtering conditions.
 
         Returns:
-            List[Dict[str, Any]]: Ranked list of matching payloads and score metrics.
+            List[Dict[str, Any]]: Ranked list of matching payloads
+            and score metrics.
         """
         return
 
@@ -113,9 +116,9 @@ class BaseVectorStore(ABC):
     ) -> bool:
         """Delete all points matching a specific payload metadata criterion.
         Arguments:
-            collection_name -- name of the collection in which points will be deleted.
-            filter_key -- key in the metadata to match points with.
-            filter_value -- value to match points with.
+            collection_name: name of the collection in which points will be deleted.
+            filter_key: key in the metadata to match points with.
+            filter_value: value to match points with.
         Returns:
             bool indicating whether any points were deleted.
         """

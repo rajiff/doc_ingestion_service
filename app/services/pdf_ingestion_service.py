@@ -1,12 +1,18 @@
 # app/services/pdf_ingestion_service.py
 import hashlib
 import uuid
-from typing import BinaryIO
-from app.interfaces import BasePDFParser
-from app.interfaces.base_chunker import BaseChunker
-from app.interfaces.base_embedder import BaseEmbeddingService
-from app.interfaces.base_vector_store import BaseVectorStore
-from app.schemas.doc_ingestion import DocIngestionResponse, DocChunkPayload
+from typing import BinaryIO, List
+from app.interfaces import (
+    BasePDFParser,
+    BaseChunker,
+    BaseEmbeddingService,
+    BaseVectorStore
+)
+from app.schemas.doc_ingestion import (
+    DocIngestionResponse,
+    DocChunkPayload,
+    DocPageExtraction
+)
 from app.core.exceptions import CollectionNotFoundError
 from app.core.logger import logger
 
@@ -72,11 +78,11 @@ class PDFIngestionService:
 
             # @TODO if more than one is returned?
         except CollectionNotFoundError as ex:
-           logger.info("Collection %s not exists, will create it, error %s",
-                       self.collection_name,
-                       str(ex))
-           existing_doc = None
-           collection_needs_creation = True
+            existing_doc = None
+            collection_needs_creation = True
+            logger.info("Collection %s not exists, will create it, error %s",
+                        self.collection_name,
+                        str(ex))
 
         # Step 2: Compute binary checksum for idempotency checking
         checksum = self._calculate_checksum_stream(file_stream)
@@ -89,7 +95,7 @@ class PDFIngestionService:
                     checksum=checksum,
                     parent_chunks_indexed=existing_doc.get("parent_count", 0),
                     child_chunks_indexed=existing_doc.get("child_count", 0),
-                    message="Document checksum matches existing record. Skipping ingestion."
+                    message="Document exists already. Skipping ingestion."
                 )
 
         try:
@@ -101,76 +107,72 @@ class PDFIngestionService:
                 )
 
             # Step 4: Parse Document Text Page by Page
+            extracted_pages: List[DocPageExtraction] = []
             extracted_pages = self.parser.extract_text(file_stream.read())
 
             # Step 5: Perform Parent-Child Chunking (Small-to-Big retrieval pattern)
             # parent_chunks, child_chunks = self.chunker.chunk_text(extracted_pages)
-            parent_chunks = []
-            child_chunks = []
-            for page in extracted_pages:
-                # Handle both Pydantic model (page.text) and standard Dict access (page["text"])
-                page_text = page.text if hasattr(page, "text") else page.get("text", "")
-                page_num = page.page_number if hasattr(page, "page_number") else page.get("page_number", 0)
+            all_parent_chunks = []
+            flat_child_chunks = []
+            parent_text_map = {}
 
+            for page in extracted_pages:
                 # Skip empty pages to save processing time
-                if not page_text.strip():
+                if not page.text.strip():
                     continue
 
-                # Pass only the raw string to your chunker
-                p_chunks = self.chunker.chunk_text(page_text, {"page_number": page_num})
-                c_chunks = []
+                 # Pass clean page metadata
+                parents = self.chunker.chunk_text(
+                    text=page.text,
+                    metadata={"page_number": page.page_number}
+                )
 
-                # Crucial Step: Stamp the chunks with their origin page number
-                # so the Vector DB payload has accurate citation metadata later
-                for pc in p_chunks:
-                    # pc.page_number = page_num
-                    c_chunks.extend(pc.children)
+                for parent in parents:
+                    all_parent_chunks.append(parent)
+                    parent_text_map[parent.parent_id] = parent.text
+                    for child in parent.children:
+                        flat_child_chunks.append(child)
 
-                # for cc in c_chunks:
-                #     cc.page_number = page_num
-
-                # Aggregate the chunks into our master lists
-                parent_chunks.extend(p_chunks)
-                child_chunks.extend(c_chunks)
+            if not flat_child_chunks:
+                return DocIngestionResponse(
+                    client_doc_id=client_doc_id,
+                    status="skipped",
+                    checksum=checksum,
+                    message="Document contains no indexable text."
+                )
 
             # Step 6: Generate Embeddings (CHILD CHUNKS ONLY)
             # RATIONALE: We embed granular child text for vector similarity matching,
-            # while mapping them back to parent chunk text in metadata for LLM synthesis.
-            child_texts = [c.text for c in child_chunks]
+            # while mapping them back to parent chunk text
+            # in metadata for LLM synthesis
+            child_texts = [child.text for child in flat_child_chunks]
             child_vectors = await self.embedder.embed_documents(child_texts)
 
             # Step 7: Construct Point Payloads for Vector Store
-            points = []
+            point_ids: List[str] = []
+            vectors: List[List[float]] = []
+            payloads: List[dict] = []
 
-            # Index Child Chunks with Vector Embeddings
-            for idx, (chunk, vector) in enumerate(zip(child_chunks, child_vectors)):
-                point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{client_doc_id}_child_{idx}"))
+            for idx, (child, vector) in enumerate(zip(flat_child_chunks, child_vectors)):
+                point_id = str(uuid.uuid5(
+                    uuid.NAMESPACE_DNS,
+                    f"{client_doc_id}_child_{idx}"))
+                page_num = child.metadata.get("page_number", 1)  # Fixed bitwise bug
+
                 payload = DocChunkPayload(
                     chunk_id=point_id,
                     client_doc_id=client_doc_id,
-                    parent_id=chunk.parent_id,
+                    parent_id=child.parent_id,
                     chunk_type="child",
-                    text=chunk.text,
-                    page_number=chunk.metadata["page_number"] | 1,
+                    text=child.text,
+                    parent_text=parent_text_map.get(child.parent_id, ""),
+                    page_number=page_num,
                     checksum=checksum
                 ).model_dump()
 
-                points.append({"id": point_id, "vector": vector, "payload": payload})
-
-            # Store Parent Chunks as Contextual Lookup Points
-            for idx, p_chunk in enumerate(parent_chunks):
-                point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{client_doc_id}_parent_{idx}"))
-                payload = DocChunkPayload(
-                    chunk_id=point_id,
-                    client_doc_id=client_doc_id,
-                    parent_id=None,
-                    chunk_type="parent",
-                    text=p_chunk.text,
-                    page_number=p_chunk.metadata["page_number"] | 1,
-                    checksum=checksum
-                ).model_dump()
-
-                points.append({"id": point_id, "vector": [], "payload": payload})
+                point_ids.append(point_id)
+                vectors.append(vector)
+                payloads.append(payload)
 
             # Conditional Lazy Initialization of Collection in Vector Database
             if collection_needs_creation:
@@ -188,22 +190,23 @@ class PDFIngestionService:
             # Step 8: Upsert points into Qdrant
             await self.vector_store.upsert_vectors(
                 collection_name=self.collection_name,
-                vectors=points,
-                payloads=[],
-                ids=[]
+                vectors=vectors,
+                payloads=payloads,
+                ids=point_ids
             )
 
             return DocIngestionResponse(
                 client_doc_id=client_doc_id,
                 status="success",
                 checksum=checksum,
-                parent_chunks_indexed=len(parent_chunks),
-                child_chunks_indexed=len(child_chunks),
+                parent_chunks_indexed=len(all_parent_chunks),
+                child_chunks_indexed=len(flat_child_chunks),
                 message="Document successfully processed and indexed."
             )
 
         except Exception as e:
-            logger.error("An error occurred while ingesting the document, error: %s", str(e))
+            logger.error("An error occurred while ingesting the document, error: %s",
+                         str(e))
             return DocIngestionResponse(
                 client_doc_id=client_doc_id,
                 status="failed",

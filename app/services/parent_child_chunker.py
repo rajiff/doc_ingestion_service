@@ -67,6 +67,11 @@ class ParentChildChunker(BaseChunker):
 
         return chunks
 
+    def _get_token_count(self, text):
+        if self.tokenizer:
+            return len(self.tokenizer.encode(text))
+        return len(text.split())
+
     def chunk_text(
             self,
             text: str,
@@ -77,7 +82,7 @@ class ParentChildChunker(BaseChunker):
         it into an organized hierarchy of interconnected
         Parent and Child chunk schemas.
         """
-        if not text.strip():
+        if not text or not text.strip():
             logger.debug("No text provided to chunk")
             return []
 
@@ -97,7 +102,7 @@ class ParentChildChunker(BaseChunker):
         parent_chunks = []
         for p_text in parent_texts:
             # Re-verify local token boundaries for metadata validation
-            p_tokens = len(self.tokenizer.encode(p_text))
+            p_tokens = self._get_token_count(p_text)
 
             # children Explicit initialization
             # circumvents type-checker validation issues
@@ -115,7 +120,7 @@ class ParentChildChunker(BaseChunker):
             )
 
             for c_text in child_texts:
-                c_tokens = len(self.tokenizer.encode(c_text))
+                c_tokens = self._get_token_count(c_text)
 
                 child = ChildChunk(
                     parent_id=parent.parent_id,

@@ -78,13 +78,6 @@ class QdrantVectorStore(BaseVectorStore):
         logger.debug("Looking up for doc with id %s", client_doc_id)
 
         try:
-            # 1. Cold Start Guard: Check if collection exists before querying
-            # if not await self.client.collection_exists(collection_name):
-            #     logger.error("Collection '%s' does not exist yet. "
-            #                 " skipping lookup for client_doc_id '%s'.",
-            #                 collection_name, client_doc_id)
-            #     raise LookupError(f"Expected collection {collection_name} does not exist, please check and try later..!")
-
             # Build Qdrant field matching condition
             match_filter = qdrant_models.Filter(
                 must=[
@@ -99,7 +92,7 @@ class QdrantVectorStore(BaseVectorStore):
             scroll_result, _ = await self.client.scroll(
                 collection_name=collection_name,
                 scroll_filter=match_filter,
-                limit=250,  # Max payload items returned per lookup batch
+                limit=10,  # Max payload items returned per lookup batch
                 with_payload=True,
                 with_vectors=False,  # RAM/IO Optimization: exclude dense embeddings
             )
@@ -109,7 +102,8 @@ class QdrantVectorStore(BaseVectorStore):
         except UnexpectedResponse as e:
             # Check if the exception represents a 404 Not Found error
             if e.status_code == 404:
-                raise CollectionNotFoundError(f"Collection {collection_name} does not exist") from e
+                raise CollectionNotFoundError(
+                    f"Collection {collection_name} does not exist") from e
 
             logger.error("Unexpected error occurred: {e}")
             raise RuntimeError("Unexpected error with vector store") from e
@@ -151,7 +145,9 @@ class QdrantVectorStore(BaseVectorStore):
         except UnexpectedResponse as e:
             # Check if the exception represents a 404 Not Found error
             if e.status_code == 404:
-                raise CollectionNotFoundError(f"Unexpected error, collection {collection_name} does not exist") from e
+                raise CollectionNotFoundError(
+                    f"Unexpected error, collection {collection_name} "
+                    "does not exist") from e
 
             logger.error("Unexpected error occurred: {e}")
             raise RuntimeError("Unexpected error with vector store") from e
@@ -195,7 +191,9 @@ class QdrantVectorStore(BaseVectorStore):
         except UnexpectedResponse as e:
             # Check if the exception represents a 404 Not Found error
             if e.status_code == 404:
-                raise CollectionNotFoundError(f"Unexpected error, collection {collection_name} does not exist") from e
+                raise CollectionNotFoundError("Unexpected error, "
+                                              f"collection {collection_name} "
+                                              "does not exist") from e
 
             logger.error("Unexpected error occurred: %s", str(e))
             raise RuntimeError("Unexpected error with vector store") from e
@@ -248,7 +246,9 @@ class QdrantVectorStore(BaseVectorStore):
         except UnexpectedResponse as e:
             # Check if the exception represents a 404 Not Found error
             if e.status_code == 404:
-                raise CollectionNotFoundError(f"Unexpected error, collection {collection_name} does not exist") from e
+                raise CollectionNotFoundError("Unexpected error, "
+                                              f"collection {collection_name} "
+                                              "does not exist") from e
 
             logger.error("Unexpected error occurred: {e}")
             raise RuntimeError("Unexpected error with vector store") from e
@@ -279,7 +279,9 @@ class QdrantVectorStore(BaseVectorStore):
         except UnexpectedResponse as e:
             # Check if the exception represents a 404 Not Found error
             if e.status_code == 404:
-                raise CollectionNotFoundError(f"Unexpected error, collection {collection_name} does not exist") from e
+                raise CollectionNotFoundError("Unexpected error, "
+                                              f"collection {collection_name} "
+                                              "does not exist") from e
 
             logger.error("Unexpected error occurred: {e}")
             raise RuntimeError("Unexpected error with vector store") from e

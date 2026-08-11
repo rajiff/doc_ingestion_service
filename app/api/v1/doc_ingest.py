@@ -55,4 +55,3 @@ async def ingest_pdf(
         # In a production app, you'd want more specific error handling
         # and logging here (e.g., parser errors vs system errors)
         raise HTTPException(status_code=500, detail=str(ex)) from ex
-

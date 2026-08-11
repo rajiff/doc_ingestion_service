@@ -1,8 +1,9 @@
-from typing import List, Dict, Any
+from typing import List
 
 import pymupdf
 
 from app.interfaces import BasePDFParser
+from app.schemas.doc_ingestion import DocPageExtraction
 
 class PyMuPDFParser(BasePDFParser):
     """Concrete implementation of BasePDFParser using PyMuPdf.
@@ -12,7 +13,7 @@ class PyMuPDFParser(BasePDFParser):
     chunks in a standardized format.
     """
 
-    def extract_text(self, file_bytes: bytes) -> List[Dict[str, Any]]:
+    def extract_text(self, file_bytes: bytes) -> List[DocPageExtraction]:
         """Parses raw PDF bytes and extracts text chunked by page.
 
         Args:
@@ -24,7 +25,7 @@ class PyMuPDFParser(BasePDFParser):
         """
         doc = pymupdf.open(stream=file_bytes, filetype="pdf")
 
-        pages: List[Dict[str, Any]] = []
+        pages: List[DocPageExtraction] = []
         for i in range(len(doc)):
             page = doc.load_page(i)
             text = page.get_text("text")

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any
+from typing import List
+from app.schemas.doc_ingestion import DocPageExtraction
 
 class BasePDFParser(ABC):
     """Abstract Base Class Document parsing.
@@ -9,7 +10,7 @@ class BasePDFParser(ABC):
     """
 
     @abstractmethod
-    def extract_text(self, file_bytes: bytes) -> List[Dict[str, Any]]:
+    def extract_text(self, file_bytes: bytes) -> List[DocPageExtraction]:
         """Parses raw PDF bytes and extracts text chunked by page.
 
         Args:

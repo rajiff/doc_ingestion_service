@@ -3,4 +3,3 @@
 
 class CollectionNotFoundError(Exception):
     """Exception raised when an vector collection not found or not exists."""
-    pass
