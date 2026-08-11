@@ -54,7 +54,12 @@ def get_chunking_service() -> BaseChunker:
         child_chunk_size=150
     )
 
-def get_ingestion_service() -> PDFIngestionService:
+def get_pdf_ingestion_service() -> PDFIngestionService:
+    """Instantiate configured PDF ingestion service"""
+    return get_ingestion_service(
+        collection_name=settings.PDF_INGESTION_VECTOR_NAME)
+
+def get_ingestion_service(collection_name: str) -> PDFIngestionService:
     """Instantiate configured ingestion service."""
     parser = get_pdf_parser()
     chunker = get_chunking_service()
@@ -66,5 +71,5 @@ def get_ingestion_service() -> PDFIngestionService:
         chunker=chunker,
         embedder=embedder,
         vector_store=vector_store,
-        collection_name=settings.QDRANT_COLLECTION_NAME
+        collection_name=collection_name
     )

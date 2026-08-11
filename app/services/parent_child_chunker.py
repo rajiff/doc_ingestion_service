@@ -78,6 +78,7 @@ class ParentChildChunker(BaseChunker):
         Parent and Child chunk schemas.
         """
         if not text.strip():
+            logger.debug("No text provided to chunk")
             return []
 
         logger.debug(

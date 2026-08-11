@@ -37,7 +37,10 @@ class Settings(BaseSettings):
     # Qdrant Settings
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
-    QDRANT_COLLECTION_NAME: str = "test_pdf_documents"
+
+    # Qdrant collections
+    PDF_INGESTION_VECTOR_NAME: str = "pdf_documents"
+    PDF_INGESTION_VECTOR_TEST_NAME: str = "test_pdf_documents"
 
     # Ingestion & Chunking Strategy
     PARENT_CHUNK_SIZE: int = 600

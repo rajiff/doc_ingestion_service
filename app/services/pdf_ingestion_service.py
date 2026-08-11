@@ -7,7 +7,8 @@ from app.interfaces.base_chunker import BaseChunker
 from app.interfaces.base_embedder import BaseEmbeddingService
 from app.interfaces.base_vector_store import BaseVectorStore
 from app.schemas.doc_ingestion import DocIngestionResponse, DocChunkPayload
-
+from app.core.exceptions import CollectionNotFoundError
+from app.core.logger import logger
 
 class PDFIngestionService:
     """
@@ -56,15 +57,29 @@ class PDFIngestionService:
         """
         Main execution flow for ingesting and indexing a PDF document.
         """
-        # Step 1: Compute binary checksum for idempotency checking
-        checksum = self._calculate_checksum_stream(file_stream)
-
-        # Step 2: Idempotency Check
+        # Step 1: Idempotency Check & Cold Start Guard
         # Avoid expensive parsing and embedding calls if document is unchanged
-        existing_doc = await self.vector_store.find_by_client_doc_id(
-            collection_name=self.collection_name,
-            client_doc_id=client_doc_id
-        )
+        existing_doc = None
+        collection_needs_creation = False
+
+        try:
+            existing_doc_records = await self.vector_store.find_by_client_doc_id(
+                collection_name=self.collection_name,
+                client_doc_id=client_doc_id
+            )
+            if len(existing_doc_records) > 0:
+                existing_doc = existing_doc_records[0]
+
+            # @TODO if more than one is returned?
+        except CollectionNotFoundError as ex:
+           logger.info("Collection %s not exists, will create it, error %s",
+                       self.collection_name,
+                       str(ex))
+           existing_doc = None
+           collection_needs_creation = True
+
+        # Step 2: Compute binary checksum for idempotency checking
+        checksum = self._calculate_checksum_stream(file_stream)
 
         if existing_doc and not force_reingest:
             if existing_doc.get("checksum") == checksum:
@@ -86,10 +101,37 @@ class PDFIngestionService:
                 )
 
             # Step 4: Parse Document Text Page by Page
-            extracted_pages = self.parser.extract_text(file_stream)
+            extracted_pages = self.parser.extract_text(file_stream.read())
 
             # Step 5: Perform Parent-Child Chunking (Small-to-Big retrieval pattern)
-            parent_chunks, child_chunks = self.chunker.split_pages(extracted_pages)
+            # parent_chunks, child_chunks = self.chunker.chunk_text(extracted_pages)
+            parent_chunks = []
+            child_chunks = []
+            for page in extracted_pages:
+                # Handle both Pydantic model (page.text) and standard Dict access (page["text"])
+                page_text = page.text if hasattr(page, "text") else page.get("text", "")
+                page_num = page.page_number if hasattr(page, "page_number") else page.get("page_number", 0)
+
+                # Skip empty pages to save processing time
+                if not page_text.strip():
+                    continue
+
+                # Pass only the raw string to your chunker
+                p_chunks = self.chunker.chunk_text(page_text, {"page_number": page_num})
+                c_chunks = []
+
+                # Crucial Step: Stamp the chunks with their origin page number
+                # so the Vector DB payload has accurate citation metadata later
+                for pc in p_chunks:
+                    # pc.page_number = page_num
+                    c_chunks.extend(pc.children)
+
+                # for cc in c_chunks:
+                #     cc.page_number = page_num
+
+                # Aggregate the chunks into our master lists
+                parent_chunks.extend(p_chunks)
+                child_chunks.extend(c_chunks)
 
             # Step 6: Generate Embeddings (CHILD CHUNKS ONLY)
             # RATIONALE: We embed granular child text for vector similarity matching,
@@ -109,7 +151,7 @@ class PDFIngestionService:
                     parent_id=chunk.parent_id,
                     chunk_type="child",
                     text=chunk.text,
-                    page_number=chunk.page_number,
+                    page_number=chunk.metadata["page_number"] | 1,
                     checksum=checksum
                 ).model_dump()
 
@@ -124,16 +166,31 @@ class PDFIngestionService:
                     parent_id=None,
                     chunk_type="parent",
                     text=p_chunk.text,
-                    page_number=p_chunk.page_number,
+                    page_number=p_chunk.metadata["page_number"] | 1,
                     checksum=checksum
                 ).model_dump()
 
                 points.append({"id": point_id, "vector": [], "payload": payload})
 
+            # Conditional Lazy Initialization of Collection in Vector Database
+            if collection_needs_creation:
+                logger.info("Collection %s is not created. Creating now...",
+                            self.collection_name)
+                # Get thelength of the vector embeddings from any one of the chunks
+                vector_size = len(child_vectors[0]) if child_vectors else 0
+
+                await self.vector_store.create_collection(
+                    collection_name=self.collection_name,
+                    vector_size=vector_size
+                )
+                logger.info("Collection %s created successfully.", self.collection_name)
+
             # Step 8: Upsert points into Qdrant
-            await self.vector_store.upsert_points(
+            await self.vector_store.upsert_vectors(
                 collection_name=self.collection_name,
-                points=points
+                vectors=points,
+                payloads=[],
+                ids=[]
             )
 
             return DocIngestionResponse(
@@ -146,6 +203,7 @@ class PDFIngestionService:
             )
 
         except Exception as e:
+            logger.error("An error occurred while ingesting the document, error: %s", str(e))
             return DocIngestionResponse(
                 client_doc_id=client_doc_id,
                 status="failed",

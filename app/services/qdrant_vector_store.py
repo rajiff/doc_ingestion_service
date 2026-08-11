@@ -3,7 +3,9 @@ from typing import Any, Dict, List, Optional
 
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qdrant_models
+from qdrant_client.http.exceptions import UnexpectedResponse
 from app.core.logger import logger
+from app.core.exceptions import CollectionNotFoundError
 from app.interfaces.base_vector_store import BaseVectorStore
 
 class QdrantVectorStore(BaseVectorStore):
@@ -73,7 +75,17 @@ class QdrantVectorStore(BaseVectorStore):
         Queries Qdrant points matching payload client_doc_id.
         Disables vector retrieval (with_vectors=False) to optimize network bandwidth.
         """
+        logger.debug("Looking up for doc with id %s", client_doc_id)
+
         try:
+            # 1. Cold Start Guard: Check if collection exists before querying
+            # if not await self.client.collection_exists(collection_name):
+            #     logger.error("Collection '%s' does not exist yet. "
+            #                 " skipping lookup for client_doc_id '%s'.",
+            #                 collection_name, client_doc_id)
+            #     raise LookupError(f"Expected collection {collection_name} does not exist, please check and try later..!")
+
+            # Build Qdrant field matching condition
             match_filter = qdrant_models.Filter(
                 must=[
                     qdrant_models.FieldCondition(
@@ -94,12 +106,20 @@ class QdrantVectorStore(BaseVectorStore):
 
             return [point.payload for point in scroll_result if point.payload]
 
-        except Exception as e:
+        except UnexpectedResponse as e:
+            # Check if the exception represents a 404 Not Found error
+            if e.status_code == 404:
+                raise CollectionNotFoundError(f"Collection {collection_name} does not exist") from e
+
+            logger.error("Unexpected error occurred: {e}")
+            raise RuntimeError("Unexpected error with vector store") from e
+        except Exception as ex:
             logger.error(
                 "Error retrieving payloads for client_doc_id '%s': ': %s",
-                client_doc_id, str(e)
+                client_doc_id, str(ex)
             )
-            raise e
+            logger.error(ex, stack_info=True, exc_info=True, stacklevel=5)
+            raise ex
 
     async def delete_by_client_doc_id(
         self,
@@ -128,6 +148,13 @@ class QdrantVectorStore(BaseVectorStore):
             logger.info("Deleted existing records for client_doc_id '%s'.", client_doc_id)
             return True
 
+        except UnexpectedResponse as e:
+            # Check if the exception represents a 404 Not Found error
+            if e.status_code == 404:
+                raise CollectionNotFoundError(f"Unexpected error, collection {collection_name} does not exist") from e
+
+            logger.error("Unexpected error occurred: {e}")
+            raise RuntimeError("Unexpected error with vector store") from e
         except Exception as e:
             logger.error(
                 "Failed to delete records for client_doc_id '%s': %s",
@@ -165,6 +192,13 @@ class QdrantVectorStore(BaseVectorStore):
             )
             return True
 
+        except UnexpectedResponse as e:
+            # Check if the exception represents a 404 Not Found error
+            if e.status_code == 404:
+                raise CollectionNotFoundError(f"Unexpected error, collection {collection_name} does not exist") from e
+
+            logger.error("Unexpected error occurred: %s", str(e))
+            raise RuntimeError("Unexpected error with vector store") from e
         except Exception as e:
             logger.error("Failed to upsert vectors into '%s': %s",
                          collection_name, str(e))
@@ -211,6 +245,13 @@ class QdrantVectorStore(BaseVectorStore):
 
             return results
 
+        except UnexpectedResponse as e:
+            # Check if the exception represents a 404 Not Found error
+            if e.status_code == 404:
+                raise CollectionNotFoundError(f"Unexpected error, collection {collection_name} does not exist") from e
+
+            logger.error("Unexpected error occurred: {e}")
+            raise RuntimeError("Unexpected error with vector store") from e
         except Exception as e:
             logger.error("Error performing vector search in '%s': %s",
                          collection_name, str(e))
@@ -222,15 +263,26 @@ class QdrantVectorStore(BaseVectorStore):
         filter_key: str,
         filter_value: Any
     ) -> bool:
-        await self.client.delete(
-            collection_name=collection_name,
-            points_selector=qdrant_models.Filter(
-                must=[
-                    qdrant_models.FieldCondition(
-                        key=filter_key,
-                        match=qdrant_models.MatchValue(value=filter_value)
-                    )
-                ]
+        try:
+            await self.client.delete(
+                collection_name=collection_name,
+                points_selector=qdrant_models.Filter(
+                    must=[
+                        qdrant_models.FieldCondition(
+                            key=filter_key,
+                            match=qdrant_models.MatchValue(value=filter_value)
+                        )
+                    ]
+                )
             )
-        )
-        return True
+            return True
+        except UnexpectedResponse as e:
+            # Check if the exception represents a 404 Not Found error
+            if e.status_code == 404:
+                raise CollectionNotFoundError(f"Unexpected error, collection {collection_name} does not exist") from e
+
+            logger.error("Unexpected error occurred: {e}")
+            raise RuntimeError("Unexpected error with vector store") from e
+        except Exception as e:
+            logger.error("Error performing vector deletion")
+            raise e
