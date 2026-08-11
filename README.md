@@ -98,7 +98,7 @@ curl -X POST "http://127.0.0.1:8000/api/v1/ingest" \
 ```
 
 ### 5. Run test cases
-You can run test cases 
+You can run test cases
 
 ```bash
 uv run pytest
@@ -133,9 +133,9 @@ uv run pylint app/**/*.py
 
 ### Chunking & Embedding Lifecycle (When and Where)
 Understanding the lifecycle sequence prevents unnecessary database hits or redundant computations.
-```plaintext                                                                         
+```plaintext
                             [INGESTION PHASE (Write Path)]
-                  
+
             User Upload -> Extract Raw Text -> Sanitize/Clean Text
                                          |
                                          ▼
@@ -149,11 +149,36 @@ Understanding the lifecycle sequence prevents unnecessary database hits or redun
                                          ▼
                              Vector Store Service
           (Upserts Child Vectors + Payload containing Parent Text & Metadata)
-          
+
       -------------------------------------------------------------------------
 
                          [RETRIEVAL PHASE (Read Path)]
-                  
+
 User Query -> Embedding Service (Calls embed_query) -> Vector Search in Qdrant
 ```
 
+
+### Metadata Strategy & What Gets Embedded
+Helps understand what actually goes into the embedding, and what goes into metadata?
+
+```plaintext
+   +-------------------------------------------------------------+
+   |                       DOCUMENT CHUNK                        |
+   |                                                             |
+   |  +-------------------------------------------------------+  |
+   |  |                   VECTOR EMBEDDING                    |  |
+   |  |  [0.012, -0.453, 0.891, ... 768 float values]         |  |
+   |  |  Source: Derived ONLY from chunk_text                 |  |
+   |  +-------------------------------------------------------+  |
+   |                                                             |
+   |  +-------------------------------------------------------+  |
+   |  |               PAYLOAD / METADATA STORAGE              |  |
+   |  |  - client_doc_id : "LMS_101_DOC_A"                    |  |
+   |  |  - chunk_id      : "uuid-v5-123"                      |  |
+   |  |  - parent_id     : "uuid-v5-parent-01"                |  |
+   |  |  - page_number   : 3                                  |  |
+   |  |  - text_content  : "This is the actual text chunk..." |  |
+   |  |  - checksum      : "a1b2c3d4..."                      |  |
+   |  +-------------------------------------------------------+  |
+   +-------------------------------------------------------------+
+```
