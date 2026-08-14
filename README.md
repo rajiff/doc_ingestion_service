@@ -1,5 +1,82 @@
 # Document ingestion spike
 
+Project Overview
+
+  The PDF Ingestion Service is a FastAPI-based microservice designed to ingest PDF documents, extract their content, chunk the text into meaningful segments (Parent-Child hierarchy),
+  generate embeddings, and store them in a vector database (Qdrant).
+
+  Core Functionalities
+
+  1. Multi-Strategy Parsing: It uses an abstraction layer (BasePDFParser) allowing it to switch between different parsing engines (like PyPDF and PDFPlumber) dynamically at runtime via
+  configuration.
+  2. Data Validation & Sanitization: Uses Pydantic schemas to ensure that extracted text and metadata are validated before any downstream processing occurs.
+  3. Chunking Service: A component that transforms raw extracted pages into "Parent-Child" token boundaries. This ensures that while small chunks are indexed for retrieval, the larger
+  parent context is preserved.
+  4. Embedding & Vector Storage (Planned/In-progress): An extensible embedding service (supporting local Ollama instances) to generate vector representations of text segments and upsert
+  them into a Qdrant database.
+  5. Observability: Built-in support for OpenTelemetry, Prometheus metrics, and Jaeger tracing, with integrated Grafana dashboarding capability.
+
+  Functional Flow: The Ingestion Pipeline
+
+  The system follows a linear processing pipeline when a user uploads a document:
+
+  1. Input & Extraction:
+    - User uploads a PDF via the /api/v1/ingest endpoint.
+    - The service identifies the correct parser (e.g., PyPDFParser) and extracts raw text from the file.
+  2. Sanitization: The extracted text is cleaned of unwanted artifacts or noise.
+  3. Chunking:
+    - The ParentChildChunker processes the sanitized text.
+    - It splits the text into smaller "Child" chunks while maintaining a link to the larger "Parent" body (using UUIDs).
+  4. Embedding:
+    - For each Child chunk, the Embedding Service generates a vector representation.
+  5. Persistence:
+    - The system saves the vectors and metadata (including client_doc_id, page_number, text_content, and a checksum) to the Qdrant database.
+
+  Data Modeling
+
+  A critical distinction in the design is what gets "Embedded" vs. what stays in "Metadata":
+  - Vector Embedding: Generated only from the specific chunk text for efficient similarity searching.
+  - Payload/Metadata: Contains the full context, including client_doc_id, parent_id, and the text_content of the chunk.
+
+  Tech Stack & Infrastructure
+
+  - Framework: FastAPI (Python)
+  - Package Management: uv / pip
+  - Databases/Vector Store: Qdrant, Prometheus (Metrics), Jaeger (Tracing), Tempo (Storage).
+  - Infrastructure: Docker-compose for deployment, Uvicorn as the ASGI server.
+
+### ROJECT.md
+Describes the PROJECT for AI agents
+
+comprehensive summary of the system, including functional flows (Extraction $\rightarrow$ Sanitization $\rightarrow$ Chunking $\rightarrow$ Embedding $\rightarrow$
+Storage), data modeling strategies (Embedding vs. Metadata), and technical stack.
+
+- Describes the project overview, high-level scope.
+- Outlines ingestion-pipeline with step-by-step execution flow.
+- Data modeling guidelines for what gets embedded vs. stored as metadata.
+
+### DESIGN.md
+DESIGN.md is authored from the perspective of a Principal Software Engineer.
+
+The document covers:
+- Architectural Philosophy: The layered approach and separation of concerns between API, Services, and Parsers.
+- Design Patterns: Explanation of the Strategy Pattern for parsing and why it was chosen over conditionals (Open-Closed Principle).
+- RAG Specifics: Detailed rationale for the Parent-Child chunking strategy and the distinction between "Embedding" vs "Metadata."
+- Data Integrity: The importance of sanitization and checksums in LLM pipelines.
+- Operational Excellence: How OpenTelemetry provides observability across the ingestion lifecycle.
+
+### CLAUDE.md
+CLAUDE.md file is at the project root.
+
+  This file serves as a "contract" and reference for Claude Code, ensuring that all future interactions adhere to the established architectural standards:
+  - Contextual Awareness: Clearly defines the RAG-focused purpose of the service.
+  - Tooling & Tech Stack: Explicitly specifies uv for dependency management and identifies the core tech stack (FastAPI, Qdrant, OpenTelemetry).
+  - Navigation Map: Provides a clear directory map to help navigate between layers (Services vs. Parsers).
+  - Behavioral Constraints: Enforces the Strategy Pattern, Pydantic-first validation, and the specific Parent-Child Chunking logic as mandatory constraints for any code modifications or
+  features added during this session.
+
+
+
 ## Day 1: Interface Design, FastAPI Setup & Text Extraction Layer
 
 #### Day 1 Deliverables & Tasks
