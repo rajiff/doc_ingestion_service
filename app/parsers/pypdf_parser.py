@@ -1,10 +1,11 @@
+# app/parsers/pypdf_parser.py
 import io
 from typing import List
 
 from pypdf import PdfReader, errors as pdf_reader_errors
 from app.interfaces import BasePDFParser
 from app.schemas.doc_ingestion import DocPageExtraction
-
+from app.core.logger import logger
 
 class PyPDFParser(BasePDFParser):
     """Concrete implementation of BasePDFParser using the 'pypdf' library."""
@@ -25,12 +26,29 @@ class PyPDFParser(BasePDFParser):
 
             return extracted_pages
         except pdf_reader_errors.PdfReadError as ex:
-            # Log the error here in a real app
-            print(f"Error reading PDF: {ex}")
+            logger.error("Error reading PDF: %s", str(ex))
             return []
         except Exception as ex:
-            # Catch-all for other processing issues
-            print(f"Unexpected error during parsing: {ex}")
+            logger.exception("Unexpected error during parsing: %s", str(ex))
+
+        return []
+
+    def extract_text_stream(self, stream: io.BytesIO) -> List[DocPageExtraction]:
+        """Parses raw PDF stream for high-memory efficiency."""
+        try:
+            # PdfReader accepts a file-like object (io.BytesIO) directly
+            pdf_reader = PdfReader(stream)
+
+            extracted_pages = self._extract_text_from_pdf(pdf_reader)
+
+            pdf_reader.close()
+
+            return extracted_pages
+        except pdf_reader_errors.PdfReadError as ex:
+            logger.error("Error reading PDF stream: %s", str(ex))
+            return []
+        except Exception as ex:
+            logger.exception("Unexpected error during stream parsing: %s", str(ex))
 
         return []
 
@@ -52,7 +70,6 @@ class PyPDFParser(BasePDFParser):
                         "text": cleaned_text
                     })
             except Exception as ex:
-                # Log error for specific page but continue processing others
-                print(f"Error extracting text from page {page_idx + 1}: {ex}")
+                logger.error("Error extracting text from page %s: %s", page_idx + 1, str(ex))
 
         return extracted_pages
