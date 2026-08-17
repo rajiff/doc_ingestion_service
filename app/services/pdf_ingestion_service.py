@@ -153,6 +153,26 @@ class PDFIngestionService:
             vectors: List[List[float]] = []
             payloads: List[dict] = []
 
+            # ---------------------------------------------------------------------
+            # A. Create Payload-Only Points for PARENT Chunks (No Dense Vectors)
+            # ---------------------------------------------------------------------
+            for parent in all_parent_chunks:
+                parent_point_id = parent.parent_id  # UUID generated during chunking
+
+                parent_payload = DocChunkPayload(
+                    chunk_id=parent_point_id,
+                    client_doc_id=client_doc_id,
+                    parent_id=None,
+                    chunk_type="parent",
+                    text=parent.text,
+                    page_number=parent.metadata.get("page_number", 1),
+                    checksum=checksum
+                ).model_dump()
+
+                point_ids.append(parent_point_id)
+                vectors.append(None)  # Parents are Payload-only point in Qdrant, it optimizes
+                payloads.append(parent_payload)
+
             for idx, (child, vector) in enumerate(zip(flat_child_chunks, child_vectors)):
                 point_id = str(uuid.uuid5(
                     uuid.NAMESPACE_DNS,
@@ -165,7 +185,6 @@ class PDFIngestionService:
                     parent_id=child.parent_id,
                     chunk_type="child",
                     text=child.text,
-                    parent_text=parent_text_map.get(child.parent_id, ""),
                     page_number=page_num,
                     checksum=checksum
                 ).model_dump()

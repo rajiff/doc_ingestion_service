@@ -198,7 +198,7 @@ class QdrantVectorStore(BaseVectorStore):
             points = [
                 qdrant_models.PointStruct(
                     id=point_id,
-                    vector=vec,
+                    vector={} if vec is None else vec,
                     payload=payload
                 )
                 for point_id, vec, payload in zip(ids, vectors, payloads)
