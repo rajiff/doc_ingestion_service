@@ -15,10 +15,12 @@ We utilize a **layered architecture** approach to maintain strict domain boundar
 3.  **Domain Logic/Parser Layer (`/parsers` & `/interfaces`):** Contains the strategy-specific implementations for document extraction.
 4.  **Schema & Models Layer (`/schemas`):** Centralizes all data transfer objects (DTOs) and ensures type safety across boundaries.
 
+---
+
 ## Core Architectural Patterns
 
 ### 1. The Strategy Pattern (Parsing Engine)
-Instead of a monolithic parser with complex conditional logic, we use the **Strategy Pattern**. By defining `BasePDFParser` as an Abstract Base Class (ABC), we adhere to the **Open-Closed Principle**:
+Instead of a monolithic parser with complex conditional logic, we use the **Strategy Pattern**. By defining `BasePDFParser` as an Abstract Base Class (ABC), we adhere to the Open-Closed Principle:
 - **Why:** Adding support for a new PDF type (e.g., OCR-heavy vs. text-based) should require adding a new class, not modifying existing code in the Ingestion Service.
 - **How:** The `IngestionService` consumes an implementation of `BasePDFParser` at runtime based on configuration/metadata.
 
@@ -49,6 +51,25 @@ We differentiate clearly between what is "Searchable" and what is "Readable":
 
 ---
 
+## Processing Architecture: Streaming & Transactional Integrity
+
+### The `PDFStreamIngestionService`
+To support large documents without hitting memory limits, we implement a **Streaming Pipeline** approach. Instead of processing an entire list of pages at once, we process items sequentially as they are yielded from the stream.
+
+#### Stream-Processing Flow (Per Page):
+1.  **Stream Extraction:** The `parser` yields a `DocPageExtraction` object for each page found in the file.
+2.  **Chunking & Embedding:** As soon as a single page is extracted, it is immediately passed to the Chunking and Embedding services.
+3.  **Persistence:** Only after embedding/chunking of that specific page is successful do we persist that data to the vector store.
+
+#### "All-or-Nothing" Transactional Integrity (Stateful Rollback)
+Because Vector Databases and Embedding APIs do not support ACID transactions, we implement a **Logical Transaction** using state management:
+*   **The Session ID:** Every item processed in a single request is tagged with a unique `session_id`.
+*   **Pending vs. Active Status:** Items are initially saved to the vector store as `pending`. 
+*   **Commit:** Once the entire file/stream has been processed successfully, all items associated with that `session_id` are updated to `active`.
+*   **Rollback (Abort):** If any page fails during processing, a catch-all exception handler identifies the current `session_id` and deletes all `pending` records associated with it. This ensures our database never contains partial results for a failed upload.
+
+---
+
 ## Operational Excellence & Observability
 This service is designed to be "production-ready" from inception through **OpenTelemetry** integration.
 
@@ -58,7 +79,7 @@ This service is designed to be "production-ready" from inception through **OpenT
 ---
 
 ## Evolutionary Roadmap & Technical Debt
-- **Scale:** Currently handles in-memory uploads. Future iterations may require asynchronous processing via Celery/Redis to handle multi-hundred MB files without timing out the HTTP request.
+- **Scale:** The current Streaming implementation handles large files by keeping memory usage linear to the size of a single page rather than the whole file. For extremely high-volume/Gigabyte-sized files, we will eventually move this to an asynchronous Task Queue (e.g., Celery).
 - **Parsing Diversity:** As we encounter complex layouts (multi-column, tables), we may need to evolve from `BasePDFParser` to a more modular "Element Extraction" model where layout analysis is a pre-processing step.
 
 ## Guidelines for Contributors

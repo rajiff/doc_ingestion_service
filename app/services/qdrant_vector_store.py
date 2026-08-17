@@ -115,6 +115,28 @@ class QdrantVectorStore(BaseVectorStore):
             logger.error(ex, stack_info=True, exc_info=True, stacklevel=5)
             raise ex
 
+    async def get_by_ids(
+        self,
+        collection_name: str,
+        ids: List[str]
+    ) -> List[Dict[str, Any]]:
+        """
+        Batch retrieve vector payloads directly by point primary keys.
+        """
+        records = await self.client.retrieve(
+            collection_name=collection_name,
+            ids=ids,
+            with_payload=True,
+            with_vectors=False
+        )
+        return [
+            {
+                "id": str(record.id),
+                "payload": record.payload or {}
+            }
+            for record in records
+        ]
+
     async def delete_by_client_doc_id(
         self,
         collection_name: str,
@@ -181,6 +203,11 @@ class QdrantVectorStore(BaseVectorStore):
                 )
                 for point_id, vec, payload in zip(ids, vectors, payloads)
             ]
+
+            logger.debug(
+                "Upserting points into Qdrant %s",
+                points
+            )
 
             await self.client.upsert(
                 collection_name=collection_name,

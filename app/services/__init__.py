@@ -2,3 +2,4 @@ from .ollama_embedding_service import OllamaEmbeddingService
 from .qdrant_vector_store import QdrantVectorStore
 from .parent_child_chunker import ParentChildChunker
 from .pdf_ingestion_service import PDFIngestionService
+from .pdf_retrieval_service import PDFRetrievalService

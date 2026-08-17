@@ -14,7 +14,8 @@ from app.services import (
     OllamaEmbeddingService,
     QdrantVectorStore,
     ParentChildChunker,
-    PDFIngestionService
+    PDFIngestionService,
+    PDFRetrievalService
 )
 
 def get_pdf_parser() -> BasePDFParser:
@@ -56,10 +57,10 @@ def get_chunking_service() -> BaseChunker:
 
 def get_pdf_ingestion_service() -> PDFIngestionService:
     """Instantiate configured PDF ingestion service"""
-    return get_ingestion_service(
+    return get_doc_ingestion_service(
         collection_name=settings.PDF_INGESTION_VECTOR_NAME)
 
-def get_ingestion_service(collection_name: str) -> PDFIngestionService:
+def get_doc_ingestion_service(collection_name: str) -> PDFIngestionService:
     """Instantiate configured ingestion service."""
     parser = get_pdf_parser()
     chunker = get_chunking_service()
@@ -71,5 +72,24 @@ def get_ingestion_service(collection_name: str) -> PDFIngestionService:
         chunker=chunker,
         embedder=embedder,
         vector_store=vector_store,
+        collection_name=collection_name
+    )
+
+def get_pdf_retrieval_service() -> PDFRetrievalService:
+    """Instantiate configured document retrieval service"""
+    return get_doc_retrieval_service(
+        collection_name=settings.PDF_INGESTION_VECTOR_NAME
+    )
+
+def get_doc_retrieval_service(
+    collection_name: str
+) -> PDFRetrievalService:
+    """Factory to instantiate the PDF context retrieval service."""
+    vector_store = get_vector_store()
+    embedder = get_embedding_service()
+
+    return PDFRetrievalService(
+        vector_store=vector_store,
+        embedder=embedder,
         collection_name=collection_name
     )

@@ -43,6 +43,17 @@ class BaseVectorStore(ABC):
         return
 
     @abstractmethod
+    async def get_by_ids(
+        self,
+        collection_name: str,
+        ids: List[str]
+    ) -> List[Dict[str, Any]]:
+        """
+        Batch retrieve vector payloads directly by point primary keys.
+        """
+        return
+
+    @abstractmethod
     async def delete_by_client_doc_id(
         self,
         collection_name: str,
