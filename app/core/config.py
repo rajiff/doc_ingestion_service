@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     SERVICE_NAME: str = "doc_ingestion_service"
 
     # Logging Configuration
-    LOG_LEVEL: str = "INFO"
+    LOG_LEVEL: str = "DEBUG"
     LOG_FILE_PATH: str = f"logs/{SERVICE_NAME}.log"
     # LOKI_URL: str | None = None  # e.g., "http://localhost:3100/loki/api/v1/push"
     LOKI_URL: str = "http://localhost:3100/loki/api/v1/push"
@@ -37,7 +37,10 @@ class Settings(BaseSettings):
     # Qdrant Settings
     QDRANT_HOST: str = "localhost"
     QDRANT_PORT: int = 6333
-    QDRANT_COLLECTION: str = "documents"
+
+    # Qdrant collections
+    PDF_INGESTION_VECTOR_NAME: str = "pdf_documents"
+    PDF_INGESTION_VECTOR_TEST_NAME: str = "test_pdf_documents"
 
     # Ingestion & Chunking Strategy
     PARENT_CHUNK_SIZE: int = 600
@@ -45,5 +48,8 @@ class Settings(BaseSettings):
     CHILD_CHUNK_SIZE: int = 150
     CHILD_CHUNK_OVERLAP: int = 25
     TOKENIZER_ENCODING_NAME: str = "cl100k_base"
+
+    # config for discarding irrelevant search hits
+    RAG_COSINE_SCORE_THRESHOLD: float = 0.70
 
 settings = Settings()

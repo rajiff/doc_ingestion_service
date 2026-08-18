@@ -1,15 +1,33 @@
-from app.core.config import settings
+from app.core.config import ParserType, settings
 from app.interfaces import (
+    BasePDFParser,
     BaseEmbeddingService,
     BaseVectorStore,
     BaseChunker
 )
-
+from app.parsers import (
+    PyPDFParser,
+    PDFPlumberParser,
+    PyMuPDFParser,
+)
 from app.services import (
     OllamaEmbeddingService,
     QdrantVectorStore,
-    ParentChildChunker
+    ParentChildChunker,
+    PDFIngestionService,
+    PDFRetrievalService
 )
+
+def get_pdf_parser() -> BasePDFParser:
+    """Factory to instantiate the configured parser strategy at runtime"""
+    if settings.DEFAULT_PARSER == ParserType.PYPDF:
+        return PyPDFParser()
+    if settings.DEFAULT_PARSER == ParserType.PDFPLUMBER:
+        return PDFPlumberParser()
+    if settings.DEFAULT_PARSER == ParserType.PYMUPDF:
+        return PyMuPDFParser()
+
+    raise ValueError(f"Unsupported parser engine: {settings.DEFAULT_PARSER}")
 
 def get_embedding_service() -> BaseEmbeddingService:
     """Factory to instantiate the configured embedding provider at runtime."""
@@ -35,4 +53,43 @@ def get_chunking_service() -> BaseChunker:
     return ParentChildChunker(
         parent_chunk_size=600,
         child_chunk_size=150
+    )
+
+def get_pdf_ingestion_service() -> PDFIngestionService:
+    """Instantiate configured PDF ingestion service"""
+    return get_doc_ingestion_service(
+        collection_name=settings.PDF_INGESTION_VECTOR_NAME)
+
+def get_doc_ingestion_service(collection_name: str) -> PDFIngestionService:
+    """Instantiate configured ingestion service."""
+    parser = get_pdf_parser()
+    chunker = get_chunking_service()
+    embedder =get_embedding_service()
+    vector_store = get_vector_store()
+
+    return PDFIngestionService(
+        parser=parser,
+        chunker=chunker,
+        embedder=embedder,
+        vector_store=vector_store,
+        collection_name=collection_name
+    )
+
+def get_pdf_retrieval_service() -> PDFRetrievalService:
+    """Instantiate configured document retrieval service"""
+    return get_doc_retrieval_service(
+        collection_name=settings.PDF_INGESTION_VECTOR_NAME
+    )
+
+def get_doc_retrieval_service(
+    collection_name: str
+) -> PDFRetrievalService:
+    """Factory to instantiate the PDF context retrieval service."""
+    vector_store = get_vector_store()
+    embedder = get_embedding_service()
+
+    return PDFRetrievalService(
+        vector_store=vector_store,
+        embedder=embedder,
+        collection_name=collection_name
     )
