@@ -101,7 +101,8 @@ class BaseVectorStore(ABC):
         collection_name: str,
         query_vector: List[float],
         top_k: int = 5,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
+        score_threshold: Optional[float] = None
     ) -> List[Dict[str, Any]]:
         """
         Performs vector similarity search against indexed records.

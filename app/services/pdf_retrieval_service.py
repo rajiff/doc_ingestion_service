@@ -59,7 +59,8 @@ class PDFRetrievalService:
                 collection_name=self.collection_name,
                 query_vector=query_vector,
                 top_k=request.top_k,
-                filters=filters if filters else None
+                filters=filters if filters else None,
+                score_threshold=settings.RAG_COSINE_SCORE_THRESHOLD
             )
 
             if not raw_hits:
@@ -80,8 +81,7 @@ class PDFRetrievalService:
             parent_to_children: Dict[str, List[DocChunkChildHit]] = {}
 
             for hit in raw_hits:
-                # payload = hit.get("payload", {})
-                payload = hit
+                payload = hit.get("payload", {})
 
                 # Only operate on child chunks
                 if payload.get("chunk_type") != "child":
@@ -92,7 +92,7 @@ class PDFRetrievalService:
                     continue
 
                 child_hit = DocChunkChildHit(
-                    child_id=hit["_id"],
+                    child_id=hit["id"],
                     parent_id=parent_id,
                     score=hit.get("score", 0.0),
                     text=payload.get("text", ""),

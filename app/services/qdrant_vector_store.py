@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional
 from qdrant_client import AsyncQdrantClient
 from qdrant_client.http import models as qdrant_models
 from qdrant_client.http.exceptions import UnexpectedResponse
+from app.core.config import settings
 from app.core.logger import logger
 from app.core.exceptions import CollectionNotFoundError
 from app.interfaces.base_vector_store import BaseVectorStore
@@ -97,7 +98,19 @@ class QdrantVectorStore(BaseVectorStore):
                 with_vectors=False,  # RAM/IO Optimization: exclude dense embeddings
             )
 
-            return [point.payload for point in scroll_result if point.payload]
+
+            # return [point.payload for point in scroll_result if point.payload]
+
+            results = []
+            for point in scroll_result:
+                item = {}
+
+                item["id"] = point.id
+                item['payload'] = point.payload or {}
+
+                results.append(item)
+
+            return results
 
         except UnexpectedResponse as e:
             # Check if the exception represents a 404 Not Found error
@@ -204,10 +217,7 @@ class QdrantVectorStore(BaseVectorStore):
                 for point_id, vec, payload in zip(ids, vectors, payloads)
             ]
 
-            logger.debug(
-                "Upserting points into Qdrant %s",
-                points
-            )
+            logger.debug("Upserting %s points into Qdrant", len(points))
 
             await self.client.upsert(
                 collection_name=collection_name,
@@ -234,7 +244,8 @@ class QdrantVectorStore(BaseVectorStore):
         collection_name: str,
         query_vector: List[float],
         top_k: int = 5,
-        filters: Optional[Dict[str, Any]] = None
+        filters: Optional[Dict[str, Any]] = None,
+        score_threshold: Optional[float] = settings.RAG_COSINE_SCORE_THRESHOLD
     ) -> List[Dict[str, Any]]:
         """
         Executes dense vector similarity search with optional filter conditions.
@@ -257,15 +268,19 @@ class QdrantVectorStore(BaseVectorStore):
                 query=query_vector,
                 query_filter=qdrant_filter,
                 limit=top_k,
-                with_payload=True
+                with_payload=True,
+                score_threshold=score_threshold # discard irrelevant points
             )
 
             # Map point hits to response dictionaries including payload and score
             results = []
             for hit in search_result.points:
-                item = hit.payload or {}
-                item["_id"] = hit.id
-                item["_score"] = hit.score
+                item = {}
+
+                item["id"] = hit.id
+                item["score"] = hit.score
+                item['payload'] = hit.payload or {}
+
                 results.append(item)
 
             return results

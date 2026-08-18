@@ -70,6 +70,8 @@ class PyPDFParser(BasePDFParser):
                         "text": cleaned_text
                     })
             except Exception as ex:
-                logger.error("Error extracting text from page %s: %s", page_idx + 1, str(ex))
+                logger.error(
+                    "Error extracting text from page %s: %s",
+                    page_idx + 1, str(ex))
 
         return extracted_pages

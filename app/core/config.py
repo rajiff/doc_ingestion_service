@@ -49,4 +49,7 @@ class Settings(BaseSettings):
     CHILD_CHUNK_OVERLAP: int = 25
     TOKENIZER_ENCODING_NAME: str = "cl100k_base"
 
+    # config for discarding irrelevant search hits
+    RAG_COSINE_SCORE_THRESHOLD: float = 0.70
+
 settings = Settings()

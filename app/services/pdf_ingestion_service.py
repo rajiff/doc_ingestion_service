@@ -170,7 +170,7 @@ class PDFIngestionService:
                 ).model_dump()
 
                 point_ids.append(parent_point_id)
-                vectors.append(None)  # Parents are Payload-only point in Qdrant, it optimizes
+                vectors.append(None) # Parents are Payload-only points
                 payloads.append(parent_payload)
 
             for idx, (child, vector) in enumerate(zip(flat_child_chunks, child_vectors)):
