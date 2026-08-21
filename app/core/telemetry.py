@@ -5,6 +5,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
 from app.core.config import settings
 from app.core.logger import logger
 
@@ -43,3 +44,8 @@ def setup_telemetry(app: FastAPI):
 
     # 4. Auto-instrument FastAPI routes
     FastAPIInstrumentor.instrument_app(app)
+    HTTPXClientInstrumentor().instrument()
+
+def get_tracer(module_name: str):
+    """Utility helper to get a tracer for custom manual spans."""
+    return trace.get_tracer(module_name)

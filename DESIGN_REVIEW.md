@@ -17,7 +17,7 @@ This document captures architectural reviews and design decisions for the PDF In
 ### 2. Identified Risks & Weaknesses
 *   **Synchronous Processing Bottleneck:** Currently, long-running parsing/chunking tasks run within the FastAPI request context. Large files or complex layouts may cause gateway timeouts (504s).
 *   **Payload Coupling:** There is a risk of "Schema Drift" if individual parsers return varying metadata formats that the `IngestionService` isn't prepared to handle consistently.
-*   **Sequential Execution:** The current pipeline (Sanitization $\rightarrow$ Chunking $\rightarrow$ Embedding) processes chunks sequentially, which ignores opportunities for parallelizing independent tasks like embedding generation.
+*   **Sequential Execution:** The current pipeline (Sanitization $\rightarrow$ Chunking $\rightarrow$ Embedding) processes chunks sequentially, which ignores opportunities for parallel-processing adjacent tasks like embedding generation.
 
 ### 3. Alternatives & Trade-offs Analysis
 
@@ -29,17 +29,18 @@ This document captures architectural reviews and design decisions for the PDF In
 | **Complexity** | Low (Straightforward API routes).
 | **Total Cost** | Lower initial dev cost. | Higher infra-complexity for high volume. |
 
-### 4. Proposed Solution: Stream-Processing & State-Aware Transactions
+### 4. Proposed Solution: Stream-Processing & Transactional Integrity
 *To address the Synchronous Processing Bottleneck while maintaining Memory Safety, we transition to a Streaming architecture.*
 
 #### The "Stream" Design:
-Instead of processing an entire file as one batch, the system will iterate over pages produced by the parser as a generator. This keeps memory usage constant (relative to page size) regardless of total document length.
+Instead of processing an entire file as one batch, we process pages individually as they are yielded from the parser. This ensures that only one page is held in memory at any given time.
 
 #### Handling Data Integrity (All-or-Nothing):
-Since Vector Databases and LLM Embedding APIs do not support standard ACID transactions:
-1.  **Stateful Tracking:** We use a unique `session_id` for each ingestion request.
-2.  **Pending Status:** All chunks are written to the database with a `pending` state initially.
-3.  **Rollback Mechanism:** If any part of the stream processing fails (e.g., page 10/50), we catch the exception and **delete all pending records** associated with that specific `session_id`. This ensures no partial data is ever exposed to the search index.
+Because Vector Databases and LLM Embedding APIs do not support ACID transactions, we implement a **Stateful Rollback** mechanism:
+*   **The Session ID:** Every-page/chunk processed in a single-requesting stream is tagged with a unique `session_id`.
+*   **Pending vs. Active Status:** All records are initially written to the vector store as `pending`.
+*   **Commit:** Once the entire stream (all pages) has been successfully processed, all records associated with that `session_id` are updated to `active`.
+*   **Rollback (Abort):** If any single page fails during processing, we catch the exception and **delete all pending records** associated with that specific `session_id`. This ensures no partial data remains in the database for a failed upload.
 
 ---
 
@@ -48,13 +49,13 @@ Since Vector Databases and LLM Embedding APIs do not support standard ACID trans
 **Status:** Reviewed - Technical Strategy Confirmed
 
 ### Critical Design Decision: Lazy Evaluation over List Accumulation
-*   **Analysis:** A common mistake in "streaming" implementations is reading the entire file into memory and simply returning a list. We have explicitly rejected this to ensure that only one page/chunk exists in memory at any given time during processing.
+*   **Analysis:** A common mistake in "streaming" implementations is reading the entire file into memory and simply returning a list. We have explicitly rejected this to ensure that only one page is held in memory at any given time during processing.
 *   **Implementation Path:** The `BasePDFParser` will provide an `extract_pages_stream` method yielding `DocPageExtraction` objects.
-*   **Impact:** This architecture ensures the service can handle documents of virtually unlimited size (limited only by single-page complexity) without OOM errors.
+*   **Impact:** This architecture ensures the system can handle documents of virtually unlimited size (limited only by single-page complexity) without OOM errors.
 
 ### Proposed Implementation Plan for Stream Processing:
-1.  **Interface Extension:** Add `extract_pages_stream(stream)` to `BasePDFParser`.
-2.  **Multi-Stage Processing:** The **Processing Service** will act as the orchestrator, iterating over the parser's stream and coordinating with the Chunking and Embedding services immediately for each yielded page.
+1.  **Interface Extension:** Add `extract_pages_stream` to `BasePDFParser`.
+2.  **Multi-Stage Processing:** The **Processing Service** will act as the orchestrator, iterating over the parser's stream and coordinating with the Chunking and Embedding services.
 
 ### Final Recommendation:
-This design achieves high performance by allowing "Production-Ready" linear processing of large files while maintaining strict data integrity through a stateful Rollback mechanism.
+This-by-page processing ensures that we maintain memory safety while achieving high performance for large documents by avoiding batch loading of entire file contents into memory at any single point in time.

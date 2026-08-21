@@ -54,19 +54,19 @@ We differentiate clearly between what is "Searchable" and what is "Readable":
 ## Processing Architecture: Streaming & Transactional Integrity
 
 ### The `PDFStreamIngestionService`
-To support large documents without hitting memory limits, we implement a **Streaming Pipeline** approach. Instead of processing an entire list of pages at once, we process items sequentially as they are yielded from the stream.
+To support large documents without hitting memory limits, we implement a **Streaming Pipeline** approach. Instead of processing an entire file as one batch, we process pages individually as they are yielded from the parser stream.
 
 #### Stream-Processing Flow (Per Page):
 1.  **Stream Extraction:** The `parser` yields a `DocPageExtraction` object for each page found in the file.
-2.  **Chunking & Embedding:** As soon as a single page is extracted, it is immediately passed to the Chunking and Embedding services.
-3.  **Persistence:** Only after embedding/chunking of that specific page is successful do we persist that data to the vector store.
+2.  **Chunking & Embedding:** As soon as a single page is extracted, it is passed to the Chunking and Embedding services immediately.
+3.  **Persistence:** Only after individual chunk embedding is successful do we persist that data to the vector store.
 
 #### "All-or-Nothing" Transactional Integrity (Stateful Rollback)
-Because Vector Databases and Embedding APIs do not support ACID transactions, we implement a **Logical Transaction** using state management:
-*   **The Session ID:** Every item processed in a single request is tagged with a unique `session_id`.
-*   **Pending vs. Active Status:** Items are initially saved to the vector store as `pending`. 
-*   **Commit:** Once the entire file/stream has been processed successfully, all items associated with that `session_id` are updated to `active`.
-*   **Rollback (Abort):** If any page fails during processing, a catch-all exception handler identifies the current `session_id` and deletes all `pending` records associated with it. This ensures our database never contains partial results for a failed upload.
+Because Vector Databases and LLM Embedding APIs do not support ACID transactions, we implement a **Stateful Rollback** mechanism:
+*   **The Session ID:** Every-page/chunk processed in a single-requesting stream is tagged with a unique `session_id`.
+*   **Pending vs. Active Status:** All records are initially written to the vector store with a `pending` status.
+*   **Commit:** Once the entire stream (all pages) has been successfully processed, all records associated with that `session_id` are updated to `active`.
+*   **Rollback (Abort):** If any single page fails during processing, we catch the exception and **delete all pending records** associated with that specific `session_id`. This ensures no partial data remains in the database for a failed upload.
 
 ---
 

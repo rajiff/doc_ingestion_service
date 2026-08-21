@@ -102,3 +102,13 @@ services:
       retries: 5
     restart: always
 
+  # 8. Arize Phoenix (Open Source LLM Observability)
+  # phoenix:
+  #   image: arizephoenix/phoenix:latest
+  #   container_name: poly_spike_phoenix
+  #   ports:
+  #     - "6006:6006" # Phoenix UI
+  #     # We do NOT expose 4317 to the host to avoid clashing with your OTel collector.
+  #     # The collector will reach Phoenix natively inside the Docker network.
+  #   restart: always
+  # Refer https://gemini.google.com/app/403eb9c6b8bb0496

@@ -259,3 +259,67 @@ Helps understand what actually goes into the embedding, and what goes into metad
    |  +-------------------------------------------------------+  |
    +-------------------------------------------------------------+
 ```
+
+
+## Observability (Trace, Metrics, Logs for Diagnosing & Monitoring)
+Use standard observability for system health, and AI-native observability for semantic and RAG quality.
+
+- Instrumentation is a platform concern. Observability products are downstream consumers.
+- Instrument once where possible, export to multiple backends.
+
+```plaintext
+                 APPLICATION CODE
+                        │
+                        │  ONE primary instrumentation model
+                        ▼
+        ┌───────────────────────────────────┐
+        │ OpenTelemetry + AI Semantic Model │
+        │                                   │
+        │ Standard OTel SemConv             │
+        │ + OpenInference where needed      │
+        └─────────────────┬─────────────────┘
+                          │ OTLP
+                          ▼
+                OpenTelemetry Collector
+                          │
+          ┌───────────────┼──────────────────┐
+          │               │                  │
+          ▼               ▼                  ▼
+      Langfuse         Phoenix         Grafana Stack
+      AI traces        RAG analysis    Metrics/Logs/Traces
+      Prompts          Evaluation      Prometheus/Tempo/Loki
+      Cost             Experiments
+```
+
+```plaintext
+                    ┌─────────────────────────────┐
+                    │       RAG Application       │
+                    │  API / Agent / Workflow     │
+                    └──────────────┬──────────────┘
+                                   │
+                    OpenTelemetry / OpenInference
+                                   │
+             ┌─────────────────────┼─────────────────────┐
+             │                     │                     │
+             ▼                     ▼                     ▼
+     Infrastructure          AI / LLM Tracing       Business Metrics
+       Observability          & Evaluation
+             │                     │                     │
+   Prometheus / Grafana    Langfuse / Phoenix      Product Analytics
+   Datadog / New Relic     LangSmith / Arize       Custom KPIs
+             │                     │
+             └──────────────┬──────┘
+                            ▼
+                     Alerting / SRE
+```
+
+Observability has to be designed at multiple, different layers, the layered distinction matters enormously.
+
+```plaintext
+OpenTelemetry       = Telemetry foundation
+OpenInference       = AI-oriented instrumentation/semantic conventions
+OpenLLMetry         = Convenient instrumentation implementation
+Langfuse            = AI observability backend
+Phoenix             = AI/RAG observability and evaluation backend
+Grafana Stack       = General infrastructure observability backend
+```
