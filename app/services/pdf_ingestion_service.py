@@ -1,6 +1,7 @@
 # app/services/pdf_ingestion_service.py
 import hashlib
 import uuid
+import asyncio
 from typing import BinaryIO, List, Optional
 from app.interfaces import (
     BasePDFParser,
@@ -64,7 +65,7 @@ class PDFIngestionService:
         is_duplicate = (
             existing_doc and not
             force_reingest and
-            existing_doc.get("checksum") == checksum
+            existing_doc.get("payload", {}).get("checksum") == checksum
         )
 
         if is_duplicate:
@@ -72,8 +73,8 @@ class PDFIngestionService:
                 client_doc_id=client_doc_id,
                 status="skipped",
                 checksum=checksum,
-                parent_chunks_indexed=existing_doc.get("parent_count", 0),
-                child_chunks_indexed=existing_doc.get("child_count", 0),
+                parent_chunks_indexed=0,
+                child_chunks_indexed=0,
                 message="Document exists already. Skipping ingestion."
             )
 
@@ -86,6 +87,7 @@ class PDFIngestionService:
                 )
 
             # Step 4: Parse Document Text Page by Page
+            # TODO: Need to make this async and unblock event loop
             extracted_pages = self.parser.extract_text(file_stream.read())
 
             # Step 5: Perform Parent-Child Chunking (Small-to-Big retrieval pattern)
