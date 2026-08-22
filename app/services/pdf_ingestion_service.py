@@ -1,7 +1,6 @@
 # app/services/pdf_ingestion_service.py
 import hashlib
 import uuid
-import asyncio
 from typing import BinaryIO, List, Optional
 from app.interfaces import (
     BasePDFParser,
@@ -166,7 +165,8 @@ class PDFIngestionService:
                 collection_name=self.collection_name,
                 client_doc_id=client_doc_id
             )
-            return (existing_doc_records[0] if len(existing_doc_records) > 0 else None, False)
+            return (existing_doc_records[0] if len(existing_doc_records) > 0 else None,
+                    False)
         except CollectionNotFoundError as ex:
             logger.info("Collection %s not exists, will create it, error %s",
                         self.collection_name, str(ex))
