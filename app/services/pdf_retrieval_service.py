@@ -10,6 +10,10 @@ from app.schemas.doc_retrieval import (
 )
 from app.core.logger import logger
 from app.core.config import settings
+from app.core.observability import (
+    business_operation,
+    BusinessCapability
+)
 
 class PDFRetrievalService:
     """
@@ -28,6 +32,11 @@ class PDFRetrievalService:
         self.embedder = embedder
         self.collection_name = collection_name
 
+    @business_operation(
+        label="retrieve_context",
+        capability=BusinessCapability.DOCUMENT_QUERY,
+        attributes={}
+    )
     async def retrieve_context(
             self,
             request: DocQueryRequest

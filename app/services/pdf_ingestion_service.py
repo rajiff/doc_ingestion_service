@@ -19,6 +19,13 @@ from app.schemas.doc_ingestion import (
 )
 from app.core.exceptions import CollectionNotFoundError
 from app.core.logger import logger
+from app.core.observability import (
+    observe,
+    business_operation,
+    business_operation_step,
+    BusinessCapability,
+    BusinessStepType
+)
 
 class PDFIngestionService:
     """
@@ -44,6 +51,11 @@ class PDFIngestionService:
         self.vector_store = vector_store
         self.collection_name = collection_name
 
+    @business_operation(
+        label="ingest_document",
+        capability=BusinessCapability.DOCUMENT_INGESTION,
+        attributes={}
+    )
     async def ingest_document(
         self,
         file_stream: BinaryIO,
@@ -87,11 +99,12 @@ class PDFIngestionService:
 
             # Step 4: Parse Document Text Page by Page
             # TODO: Need to make this async and unblock event loop
-            extracted_pages = self.parser.extract_text(file_stream.read())
+            # extracted_pages = self.parser.extract_text(file_stream.read())
+            extracted_pages = self._extract_parsed_pages(file_stream)
 
             # Step 5: Perform Parent-Child Chunking (Small-to-Big retrieval pattern)
             # parent_chunks, child_chunks = self.chunker.chunk_text(extracted_pages)
-            all_parent_chunks, flat_child_chunks = self._process_chunks(extracted_pages)
+            all_parent_chunks, flat_child_chunks = self._process_parent_child_chunks(extracted_pages)
 
             if not flat_child_chunks:
                 return DocIngestionResponse(
@@ -144,6 +157,9 @@ class PDFIngestionService:
                 error_details=str(e)
             )
 
+    @observe(
+        label="_calculate_checksum_stream"
+    )
     def _calculate_checksum_stream(self, file_stream: BinaryIO) -> str:
         """
         RATIONALE: Memory-efficient hashing.
@@ -158,6 +174,9 @@ class PDFIngestionService:
         file_stream.seek(0)
         return sha256.hexdigest()
 
+    @observe(
+        label="_get_existing_document"
+    )
     async def _get_existing_document(self, client_doc_id: str):
         """Checks if document exists and handles collection discovery."""
         try:
@@ -172,7 +191,21 @@ class PDFIngestionService:
                         self.collection_name, str(ex))
             return (None, True)
 
-    def _process_chunks(
+    @business_operation_step(
+        label="_extract_parsed_pages",
+        step_type=BusinessStepType.WORKFLOW,
+        attributes={}
+    )
+    def _extract_parsed_pages(self, file_stream) -> List[DocPageExtraction]:
+        """Using parser parse & extract pages from the file stream"""
+        return self.parser.extract_text(file_stream.read())
+
+    @business_operation_step(
+        label="_process_parent_child_chunks",
+        step_type=BusinessStepType.WORKFLOW,
+        attributes={}
+    )
+    def _process_parent_child_chunks(
         self,
         extracted_pages: List[DocPageExtraction]
     ) -> dict:
@@ -198,6 +231,11 @@ class PDFIngestionService:
 
         return (all_parent_chunks, flat_child_chunks)
 
+    @business_operation_step(
+            label="_generate_vector_embeddings",
+            step_type=BusinessStepType.WORKFLOW,
+            attributes={}
+    )
     async def _generate_vector_embeddings(
         self,
         client_doc_id: str,
@@ -261,6 +299,9 @@ class PDFIngestionService:
 
         return (point_ids, vectors, payloads)
 
+    @observe(
+        label="_ensure_collection_exists"
+    )
     async def _ensure_collection_exists(
         self,
         vectors: List[Optional[List[float]]]

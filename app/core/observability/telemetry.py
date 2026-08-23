@@ -6,9 +6,10 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.sdk.resources import Resource, SERVICE_NAME
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.instrumentation.httpx import HTTPXClientInstrumentor
+from opentelemetry.instrumentation.qdrant import QdrantInstrumentor
+from opentelemetry.instrumentation.ollama import OllamaInstrumentor
 from app.core.config import settings
 from app.core.logger import logger
-
 
 def setup_telemetry(app: FastAPI):
     """
@@ -43,8 +44,12 @@ def setup_telemetry(app: FastAPI):
     trace.set_tracer_provider(provider)
 
     # 4. Auto-instrument FastAPI routes
-    FastAPIInstrumentor.instrument_app(app)
+    FastAPIInstrumentor.instrument_app(app, excluded_urls="/metrics,/healthz")
+
+    # 5. Auto-instrument Infrastructure
     HTTPXClientInstrumentor().instrument()
+    QdrantInstrumentor().instrument()
+    OllamaInstrumentor().instrument()
 
 def get_tracer(module_name: str):
     """Utility helper to get a tracer for custom manual spans."""

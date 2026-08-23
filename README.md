@@ -323,3 +323,26 @@ Langfuse            = AI observability backend
 Phoenix             = AI/RAG observability and evaluation backend
 Grafana Stack       = General infrastructure observability backend
 ```
+
+
+Observability semantics
+semantic structure of observability decorators
+```plaintext
+OBSERVABILITY
+│
+├── BUSINESS SEMANTICS
+│   │
+│   ├── @business_operation
+│   │
+│   └── @business_operation_step
+│
+├── AI SEMANTICS
+│   │
+│   ├── @ai_operation
+│   │
+│   └── @agent
+│
+└── GENERIC TECHNICAL SEMANTICS
+    │
+    └── @observe
+```
