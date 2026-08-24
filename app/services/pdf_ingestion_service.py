@@ -98,13 +98,14 @@ class PDFIngestionService:
                 )
 
             # Step 4: Parse Document Text Page by Page
-            # TODO: Need to make this async and unblock event loop
+            # Need to make this async and unblock event loop
             # extracted_pages = self.parser.extract_text(file_stream.read())
             extracted_pages = self._extract_parsed_pages(file_stream)
 
             # Step 5: Perform Parent-Child Chunking (Small-to-Big retrieval pattern)
             # parent_chunks, child_chunks = self.chunker.chunk_text(extracted_pages)
-            all_parent_chunks, flat_child_chunks = self._process_parent_child_chunks(extracted_pages)
+            all_parent_chunks, flat_child_chunks = self._process_parent_child_chunks(
+                extracted_pages)
 
             if not flat_child_chunks:
                 return DocIngestionResponse(
