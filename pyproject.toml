@@ -13,7 +13,6 @@ dependencies = [
     "opentelemetry-exporter-otlp-proto-grpc>=1.44.0",
     "opentelemetry-instrumentation-fastapi>=0.65b0",
     "opentelemetry-instrumentation-httpx>=0.65b0",
-    "opentelemetry-instrumentation-ollama>=0.62.3",
     "opentelemetry-instrumentation-qdrant>=0.62.3",
     "opentelemetry-sdk>=1.44.0",
     "pdfplumber>=0.11.10",

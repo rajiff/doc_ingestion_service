@@ -1,7 +1,7 @@
 from typing import Any, Callable, ParamSpec, TypeVar
 
 from app.core.observability.semantic_schema import O11yAppAttributes, O11yDecoratorType
-from app.core.observability.decorators import observe
+from app.core.observability.decorators import instrument
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -66,8 +66,8 @@ def business_operation(
                 attributes
             )
 
-        return observe(
-            label=operation_name,
+        return instrument(
+            name=operation_name,
             attributes=business_attributes
         )(target)
 
