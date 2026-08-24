@@ -12,3 +12,6 @@ from .decorators import (
     business_operation,
     business_operation_step
 )
+from .attribute_capture import (
+    capture_arguments
+)

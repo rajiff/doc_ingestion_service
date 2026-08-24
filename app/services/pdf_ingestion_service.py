@@ -24,7 +24,8 @@ from app.core.observability import (
     business_operation,
     business_operation_step,
     BusinessCapability,
-    BusinessStepType
+    BusinessStepType,
+    capture_arguments
 )
 
 class PDFIngestionService:
@@ -54,7 +55,10 @@ class PDFIngestionService:
     @business_operation(
         label="ingest_document",
         capability=BusinessCapability.DOCUMENT_INGESTION,
-        attributes={}
+        attribute_provider=capture_arguments(
+            client_doc_id="document.client.id",
+            force_reingest="document.force_reingest",
+        )
     )
     async def ingest_document(
         self,
@@ -176,7 +180,10 @@ class PDFIngestionService:
         return sha256.hexdigest()
 
     @observe(
-        label="_get_existing_document"
+        label="_get_existing_document",
+        attribute_provider=capture_arguments(
+            client_doc_id="document.client.id"
+        )
     )
     async def _get_existing_document(self, client_doc_id: str):
         """Checks if document exists and handles collection discovery."""
@@ -233,9 +240,9 @@ class PDFIngestionService:
         return (all_parent_chunks, flat_child_chunks)
 
     @business_operation_step(
-            label="_generate_vector_embeddings",
-            step_type=BusinessStepType.WORKFLOW,
-            attributes={}
+        label="_generate_vector_embeddings",
+        step_type=BusinessStepType.WORKFLOW,
+        attributes={}
     )
     async def _generate_vector_embeddings(
         self,

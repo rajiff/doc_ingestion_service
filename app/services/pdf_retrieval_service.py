@@ -12,7 +12,8 @@ from app.core.logger import logger
 from app.core.config import settings
 from app.core.observability import (
     business_operation,
-    BusinessCapability
+    BusinessCapability,
+    capture_arguments
 )
 
 class PDFRetrievalService:
@@ -35,7 +36,9 @@ class PDFRetrievalService:
     @business_operation(
         label="retrieve_context",
         capability=BusinessCapability.DOCUMENT_QUERY,
-        attributes={}
+        attribute_provider=capture_arguments(
+            request="document.query.request"
+        )
     )
     async def retrieve_context(
             self,

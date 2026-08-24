@@ -1,8 +1,14 @@
 from typing import Any, Callable, ParamSpec, TypeVar
 
-from app.core.observability.semantic_schema import O11yDecoratorType, O11yAppAttributes
+from collections.abc import Mapping
+from app.core.observability.semantic_schema import (
+    O11yDecoratorType,
+    O11yAppAttributes
+)
 from app.core.observability.decorators.instrument import instrument
-
+from app.core.observability.attribute_provider import (
+    AttributeProvider
+)
 # generic placeholders for static type checkers
 # captures the exact arguments and keyword arguments of a callable and
 # allows you to forward them to another callable without losing type information.
@@ -13,7 +19,8 @@ def observe(
     func: Callable[P, R] | None = None,
     *,
     label: str | None = None,
-    attributes: dict[str, Any] | None = None,
+    attributes: Mapping[str, Any] | None = None,
+    attribute_provider: AttributeProvider | None = None,
 ):
     """
     Observe the execution of a synchronous or asynchronous function.
@@ -64,6 +71,7 @@ def observe(
         return instrument(
             name=span_name,
             attributes=span_attributes,
+            attribute_provider=attribute_provider,
         )(target)
 
     # Supports:

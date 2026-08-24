@@ -1,7 +1,14 @@
 from typing import Any, Callable, ParamSpec, TypeVar
 
-from app.core.observability.semantic_schema import O11yAppAttributes, O11yDecoratorType
+from collections.abc import Mapping
+from app.core.observability.semantic_schema import (
+    O11yAppAttributes,
+    O11yDecoratorType
+)
 from app.core.observability.decorators import instrument
+from app.core.observability.attribute_provider import (
+    AttributeProvider
+)
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -11,7 +18,8 @@ def business_operation(
     *,
     label: str | None = None,
     capability: str | None = None,
-    attributes: dict[str, Any] | None = None,
+    attributes: Mapping[str, Any] | None = None,
+    attribute_provider: AttributeProvider | None = None,
 ):
     """
     Decorator for instrumenting a business-level operation.
@@ -68,7 +76,8 @@ def business_operation(
 
         return instrument(
             name=operation_name,
-            attributes=business_attributes
+            attributes=business_attributes,
+            attribute_provider=attribute_provider,
         )(target)
 
     if func is not None:
