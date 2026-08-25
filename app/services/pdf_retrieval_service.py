@@ -13,7 +13,6 @@ from app.core.config import settings
 from app.core.observability import (
     business_operation,
     BusinessCapability,
-    capture_arguments
 )
 
 class PDFRetrievalService:
@@ -36,9 +35,12 @@ class PDFRetrievalService:
     @business_operation(
         label="retrieve_context",
         capability=BusinessCapability.DOCUMENT_QUERY,
-        attribute_provider=capture_arguments(
-            request="document.query.request"
-        )
+        attribute_provider=lambda ctx: {
+            "document.query.client_doc_id":ctx.get("request").client_doc_id,
+            # "document.query.query": ctx.get("request").query, # query may contain personal info, so not tracking
+            "document.query.length": len(ctx.get("request").query),
+            "document.query.top_k": ctx.get("request").top_k,
+        }
     )
     async def retrieve_context(
             self,
