@@ -1,6 +1,7 @@
 from typing import Any, Callable, ParamSpec, TypeVar
 
 from collections.abc import Mapping
+from opentelemetry.trace import SpanKind
 from app.core.observability.semantic_schema import (
     O11yAppAttributes,
     O11yDecoratorType
@@ -78,6 +79,7 @@ def business_operation(
             name=operation_name,
             attributes=business_attributes,
             attribute_provider=attribute_provider,
+            span_kind=SpanKind.INTERNAL
         )(target)
 
     if func is not None:

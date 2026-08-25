@@ -37,7 +37,8 @@ class PDFRetrievalService:
         capability=BusinessCapability.DOCUMENT_QUERY,
         attribute_provider=lambda ctx: {
             "document.query.client_doc_id":ctx.get("request").client_doc_id,
-            # "document.query.query": ctx.get("request").query, # query may contain personal info, so not tracking
+            # query may contain personal info, so not tracking
+            # "document.query.query": ctx.get("request").query,
             "document.query.length": len(ctx.get("request").query),
             "document.query.top_k": ctx.get("request").top_k,
         }
