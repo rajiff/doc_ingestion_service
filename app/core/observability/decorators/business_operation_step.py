@@ -19,7 +19,7 @@ def business_operation_step(
     label: str | None = None,
     step_type: str | None = None,
     attributes: Mapping[str, Any] | None = None,
-    attribute_provider: AttributeProvider | None = None,
+    attribute_provider: AttributeProvider | None = None
 ):
     """
     Decorator for instrumenting a meaingful step of business operation.

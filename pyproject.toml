@@ -24,6 +24,8 @@ dependencies = [
     "python-multipart>=0.0.32",
     "qdrant-client>=1.19.0",
     "requests>=2.34.2",
+    "streamlit>=1.62.0",
+    "streamlit-lottie>=0.0.5",
     "tiktoken>=0.13.0",
     "uvicorn[standard]>=0.52.1",
 ]
