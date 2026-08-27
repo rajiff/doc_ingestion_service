@@ -54,6 +54,7 @@ disable = [
     "W0718", # Catching too general exception Exception
     "R0914", # Too many local variables
     "R0902", # Too many instance attributes
+    "R0801", # Similar lines in 2 files
 ]
 
 [tool.pylint.format]
