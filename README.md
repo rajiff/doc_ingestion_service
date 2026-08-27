@@ -154,6 +154,13 @@ You can run the application using `uvicorn`. Since the FastAPI app is defined in
 uv run uvicorn app.main:app --reload
 ```
 
+**Running streamlit** for Dev UI App
+Doc ingestion UI 
+```
+uv run streamlit run dev_ui_app/doc_ingest_dashboard.py
+```
+
+
 - `app.main`: Points to the app.py module inside the `app` directory.
 - `app`: Refers to the app instance created in `app/main.py`.
 - `--reload`: Enables hot-reloading for development.
