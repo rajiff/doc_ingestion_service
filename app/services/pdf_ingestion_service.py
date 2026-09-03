@@ -2,6 +2,7 @@
 import hashlib
 import uuid
 from typing import List, Optional
+from anyio import to_thread
 from fastapi import UploadFile
 from app.interfaces import (
     BasePDFParser,
@@ -212,7 +213,11 @@ class PDFIngestionService:
         """Using parser parse & extract pages from the file stream"""
         # pdf_content = await upload_file.read()
         # return self.parser.extract_text(pdf_content)
-        return self.parser.extract_text_stream(upload_file.file)
+        # return self.parser.extract_text_stream(upload_file.file)
+        return await to_thread.run_sync(
+            self.parser.extract_text_stream,
+            upload_file.file
+        )
 
     @business_operation_step(
         label="_process_parent_child_chunks",
