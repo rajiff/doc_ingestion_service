@@ -99,7 +99,7 @@ with chat_tab:
             with st.chat_message("assistant"):
                 with st.spinner("Searching documents..."):
                     response = httpx.post(
-                        f"{API_BASE_URL}/documents/query",
+                        f"{API_BASE_URL}/documents/retrieve_context",
                         json={
                             "query": question,
                             "top_k": 5,

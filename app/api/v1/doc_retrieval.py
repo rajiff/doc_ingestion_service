@@ -10,8 +10,8 @@ from app.core.logger import logger
 
 router = APIRouter()
 
-@router.post("/query", response_model=DocQueryResponse)
-async def query_context(
+@router.post("/retrieve_context", response_model=DocQueryResponse)
+async def retrieve_context(
     request: DocQueryRequest,
     retrieval_service: PDFRetrievalService = Depends(get_pdf_retrieval_service)
 ):
