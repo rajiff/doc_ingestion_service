@@ -41,7 +41,7 @@ with upload_documents_tab:
         if uploaded_file and st.button("Ingest Document"):
             with st.spinner("Ingesting document..."):
                 files = {
-                    "file": (
+                    "upload_file": (
                         uploaded_file.name,
                         uploaded_file.getvalue(),
                         uploaded_file.type,
