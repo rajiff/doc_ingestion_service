@@ -1,7 +1,8 @@
 # app/services/pdf_ingestion_service.py
 import hashlib
 import uuid
-from typing import BinaryIO, List, Optional
+from typing import List, Optional
+from fastapi import UploadFile
 from app.interfaces import (
     BasePDFParser,
     BaseChunker,
@@ -62,7 +63,7 @@ class PDFIngestionService:
     )
     async def ingest_document(
         self,
-        file_stream: BinaryIO,
+        upload_file: UploadFile,
         client_doc_id: str,
         force_reingest: bool = False
     ) -> DocIngestionResponse:
@@ -75,7 +76,7 @@ class PDFIngestionService:
             client_doc_id=client_doc_id)
 
         # Step 2: Compute binary checksum for idempotency checking
-        checksum = self._calculate_checksum_stream(file_stream)
+        checksum = await self._calculate_checksum_stream(upload_file)
 
         is_duplicate = (
             existing_doc and not
@@ -104,7 +105,7 @@ class PDFIngestionService:
             # Step 4: Parse Document Text Page by Page
             # Need to make this async and unblock event loop
             # extracted_pages = self.parser.extract_text(file_stream.read())
-            extracted_pages = self._extract_parsed_pages(file_stream)
+            extracted_pages = await self._extract_parsed_pages(upload_file)
 
             # Step 5: Perform Parent-Child Chunking (Small-to-Big retrieval pattern)
             # parent_chunks, child_chunks = self.chunker.chunk_text(extracted_pages)
@@ -165,18 +166,18 @@ class PDFIngestionService:
     @observe(
         label="_calculate_checksum_stream"
     )
-    def _calculate_checksum_stream(self, file_stream: BinaryIO) -> str:
+    async def _calculate_checksum_stream(self, upload_file: UploadFile) -> str:
         """
         RATIONALE: Memory-efficient hashing.
         Processes the stream in 64KB blocks rather than loading multi-megabyte
         files completely into memory at once.
         """
         sha256 = hashlib.sha256()
-        while chunk := file_stream.read(65536):
+        while chunk := await upload_file.read(65536):
             sha256.update(chunk)
 
         # Reset stream position for downstream text parsers
-        file_stream.seek(0)
+        await upload_file.seek(0)
         return sha256.hexdigest()
 
     @observe(
@@ -204,9 +205,14 @@ class PDFIngestionService:
         step_type=BusinessStepType.WORKFLOW,
         attributes={}
     )
-    def _extract_parsed_pages(self, file_stream) -> List[DocPageExtraction]:
+    async def _extract_parsed_pages(
+        self,
+        upload_file: UploadFile
+    ) -> List[DocPageExtraction]:
         """Using parser parse & extract pages from the file stream"""
-        return self.parser.extract_text(file_stream.read())
+        # pdf_content = await upload_file.read()
+        # return self.parser.extract_text(pdf_content)
+        return self.parser.extract_text_stream(upload_file.file)
 
     @business_operation_step(
         label="_process_parent_child_chunks",
@@ -240,6 +246,15 @@ class PDFIngestionService:
         return (all_parent_chunks, flat_child_chunks)
 
     @business_operation_step(
+        label="_embed_documents",
+        step_type=BusinessStepType.WORKFLOW,
+        attributes={}
+    )
+    async def _embed_documents(self, texts: List[str]):
+        vectors = await self.embedder.embed_documents(texts)
+        return vectors
+
+    @business_operation_step(
         label="_generate_vector_embeddings",
         step_type=BusinessStepType.WORKFLOW,
         attributes={}
@@ -257,7 +272,7 @@ class PDFIngestionService:
         # while mapping them back to parent chunk text
         # in metadata for LLM synthesis
         child_texts = [child.text for child in flat_child_chunks]
-        child_vectors = await self.embedder.embed_documents(child_texts)
+        child_vectors = await self._embed_documents(child_texts)
 
         point_ids = []
         vectors = []

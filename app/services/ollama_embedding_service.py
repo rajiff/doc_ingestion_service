@@ -1,6 +1,7 @@
 from typing import List, Optional, Union
 import httpx
 from app.interfaces.base_embedder import BaseEmbeddingService
+from app.core.observability import observe
 
 class OllamaEmbeddingService(BaseEmbeddingService):
     """
@@ -14,6 +15,7 @@ class OllamaEmbeddingService(BaseEmbeddingService):
         self.model = model
         self._dimension: Optional[int] = None
 
+    @observe(label="get_dimension")
     async def get_dimension(self) -> int:
         """
         Dynamically detects vector dimensionality by issuing an initial probe.
@@ -24,6 +26,12 @@ class OllamaEmbeddingService(BaseEmbeddingService):
             self._dimension = len(probe_vector)
         return self._dimension
 
+    @observe(
+        label="embed_query",
+        attribute_provider=lambda ctx: {
+            "len_query_to_embed":len(ctx.get("text"))
+        }
+    )
     async def embed_query(self, text: str) -> List[float]:
         """Encodes an isolated search query string using the
         correct model routing prefix.
@@ -35,6 +43,12 @@ class OllamaEmbeddingService(BaseEmbeddingService):
         embeddings = await self._call_ollama_api(formatted_text)
         return embeddings[0]
 
+    @observe(
+        label="embed_documents",
+        attribute_provider=lambda ctx: {
+            "len_doc_to_embed":len(ctx.get("texts"))
+        }
+    )
     async def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """
         Default document passage embedding entry point. Utilizes micro-batching
@@ -55,6 +69,12 @@ class OllamaEmbeddingService(BaseEmbeddingService):
             results.append(vector_wrap[0])
         return results
 
+    @observe(
+        label="embed_documents_batch",
+        attribute_provider=lambda ctx: {
+            "len_doc_batch_to_embed":len(ctx.get("texts"))
+        }
+    )
     async def embed_documents_batch(self, texts: List[str]) -> List[List[float]]:
         """Batches multiple document strings into a single optimized payload call."""
         formatted_texts = [
@@ -63,10 +83,15 @@ class OllamaEmbeddingService(BaseEmbeddingService):
         ]
         return await self._call_ollama_api(formatted_texts)
 
+    @observe(
+        label="_call_ollama_api",
+        attribute_provider=lambda ctx: {
+            "len_payload_input":len(ctx.get("payload_input"))
+        }
+    )
     async def _call_ollama_api(
             self,
-            payload_input: Union[str,
-            List[str]]
+            payload_input: Union[str, List[str]]
         ) -> List[List[float]]:
         """
         Core pipeline communication layer. Manages

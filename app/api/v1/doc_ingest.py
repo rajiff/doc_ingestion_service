@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.post("/ingest", response_model=DocIngestionResponse)
 async def ingest_pdf(
-    file: UploadFile = File(
+    upload_file: UploadFile = File(
         ..., description="Binary PDF file upload"),
     client_doc_id: str = Form(
         ..., description="Unique client-provided document identifier"),
@@ -23,20 +23,20 @@ async def ingest_pdf(
     """
     Endpoint to submit a valid PDF file for ingestion process
     """
-    if not file.filename.lower().endswith(".pdf"):
+    if not upload_file.filename.lower().endswith(".pdf"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Unsupported file type. Only PDF files are supported."
         )
 
     logger.info("Received request to ingest file %s with doc id %s",
-           file.filename,
+           upload_file.filename,
            client_doc_id)
 
     try:
         # Pass the stream directly (file.file) to prevent buffering giant files into RAM
         response = await ingestion_service.ingest_document(
-            file_stream=file.file,
+            upload_file=upload_file,
             client_doc_id=client_doc_id,
             force_reingest=force_reingest
         )
@@ -49,7 +49,7 @@ async def ingest_pdf(
     except Exception as ex:
         logger.error("Error %s ingesting document: %s of id %s",
                      str(ex),
-                     file.filename,
+                     upload_file.filename,
                      client_doc_id)
         # In a production app, you'd want more specific error handling
         # and logging here (e.g., parser errors vs system errors)
